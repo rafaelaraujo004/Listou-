@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listou - Lista de Compras</title>
+    <meta name="theme-color" content="#1e1f22">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+    <!-- TODO: Integrar ZXing/jsQR via CDN para leitura de QRCode -->
+</head>
+<body>
+    <main>
+        <picture>
+            <!-- Futuro: gerar versões WebP/PNG otimizadas -->
+            <source srcset="logo.svg" type="image/svg+xml">
+            <img src="logo.svg" alt="Logo Listou" id="logo" width="96" height="96" loading="lazy">
+        </picture>
+        <h1>Listou</h1>
+        <div id="theme-toggle-wrapper">
+            <button id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">Tema</button>
+        </div>
+        <section id="add-item-section">
+            <div class="input-container">
+                <input id="item-input" type="text" placeholder="Adicionar item... (Enter ou Ctrl+Enter)" autocomplete="off" autofocus>
+                <div id="autocomplete-list" class="autocomplete-hidden"></div>
+            </div>
+            <select id="category-select">
+                <option value="">Categoria</option>
+                <option value="frutas">🍎 Frutas</option>
+                <option value="verduras">🥬 Verduras</option>
+                <option value="carnes">🥩 Carnes</option>
+                <option value="laticínios">🥛 Laticínios</option>
+                <option value="padaria">🍞 Padaria</option>
+                <option value="limpeza">🧽 Limpeza</option>
+                <option value="higiene">🧴 Higiene</option>
+                <option value="bebidas">🥤 Bebidas</option>
+                <option value="outros">📦 Outros</option>
+            </select>
+            <button id="add-item-btn" title="Adicionar (Enter)">+</button>
+        </section>
+
+        <section id="filters-section">
+            <div class="filter-controls">
+                <input id="search-input" type="text" placeholder="Buscar itens..." class="search-input">
+                <select id="filter-category">
+                    <option value="">Todas as categorias</option>
+                    <option value="frutas">🍎 Frutas</option>
+                    <option value="verduras">🥬 Verduras</option>
+                    <option value="carnes">🥩 Carnes</option>
+                    <option value="laticínios">🥛 Laticínios</option>
+                    <option value="padaria">🍞 Padaria</option>
+                    <option value="limpeza">🧽 Limpeza</option>
+                    <option value="higiene">🧴 Higiene</option>
+                    <option value="bebidas">🥤 Bebidas</option>
+                    <option value="outros">📦 Outros</option>
+                </select>
+                <select id="filter-status">
+                    <option value="all">Todos os itens</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="bought">Comprados</option>
+                </select>
+            </div>
+        </section>
+
+        <section id="smart-suggestions" class="suggestions-section">
+            <h3>💡 Sugestões Inteligentes</h3>
+            <div id="suggestions-list"></div>
+        </section>
+
+        <section id="stats-section" class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="total-items">0</span>
+                    <span class="stat-label">Itens</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="completed-items">0</span>
+                    <span class="stat-label">Comprados</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="estimated-price">R$ 0</span>
+                    <span class="stat-label">Estimativa</span>
+                </div>
+            </div>
+        </section>
+
+        <ul id="shopping-list"></ul>
+        <section id="templates-section">
+            <h2>📋 Templates Inteligentes</h2>
+            <div class="templates-grid">
+                <button class="template-btn" data-template="compra-mes">🛒 Compra do mês</button>
+                <button class="template-btn" data-template="feira">🥬 Feira</button>
+                <button class="template-btn" data-template="limpeza">🧽 Produtos de limpeza</button>
+                <button class="template-btn" data-template="churrasco">🍖 Churrasco</button>
+                <button class="template-btn" data-template="cafe-manha">☕ Café da manhã</button>
+                <button class="template-btn" data-template="favoritos">⭐ Meus favoritos</button>
+            </div>
+        </section>
+
+        <section id="sharing-section">
+            <h2>📤 Compartilhar Lista</h2>
+            <div class="sharing-controls">
+                <button id="share-link-btn">🔗 Gerar link</button>
+                <button id="export-list-btn">📋 Copiar lista</button>
+                <button id="import-list-btn">📥 Importar lista</button>
+            </div>
+        </section>
+        <section id="qr-section">
+            <button id="scan-qr-btn">Ler QRCode (NFC-e)</button>
+        </section>
+    </main>
+    <script src="db.js"></script>
+    <script src="qr.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

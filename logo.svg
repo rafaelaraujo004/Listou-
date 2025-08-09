@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logo: Carrinho neutro futurista - Listou -->
+<svg id="listou-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="title desc">
+  <title id="title">Listou</title>
+  <desc id="desc">Carrinho de compras neutro estilizado com check minimalista</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2d3035"/>
+      <stop offset="100%" stop-color="#151619"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" ry="28" fill="url(#bg)" stroke="#3a3d42" stroke-width="2"/>
+  <path d="M14 86c18 26 64 38 100 12" fill="none" stroke="url(#shine)" stroke-width="14" stroke-linecap="round" opacity="0.35"/>
+  <g transform="translate(16 28)" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+    <path d="M10 12h14l6 34h44l8-24H30" fill="none" stroke="#fafafa" stroke-width="6" stroke-opacity="0.16"/>
+    <path d="M10 12h14l6 34h44l8-24H30" fill="none" stroke="#d2d4d6" stroke-width="3"/>
+    <circle cx="38" cy="54" r="7" fill="#e6e7e9" stroke="#4a4e53" stroke-width="3"/>
+    <circle cx="66" cy="54" r="7" fill="#e6e7e9" stroke="#4a4e53" stroke-width="3"/>
+    <path d="M40 24l8 8 18-18" fill="none" stroke="#e6e7e9" stroke-width="8" stroke-linecap="round" stroke-opacity="0.22"/>
+    <path d="M40 24l8 8 18-18" fill="none" stroke="#cfd2d6" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <rect x="4" y="4" width="120" height="120" rx="28" ry="28" fill="none" stroke="#4a4e53" stroke-width="1" opacity="0.4"/>
+</svg>
