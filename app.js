@@ -1,5 +1,6 @@
 // app.js - Lógica principal da UI do Listou
 // v2: Sistema inteligente com categorias, sugestões, análise de padrões e preços
+// v3: Interface com sidebar moderna e navegação por seções
 
 import { dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, dbGetTemplates, dbLoadTemplate } from './db.js';
 import { scanQRCode } from './qr.js';
@@ -7,7 +8,29 @@ import { IntelligenceManager } from './intelligence.js';
 import { AnalyticsManager } from './analytics.js';
 import { NotificationManager } from './notifications.js';
 
-// Elementos DOM
+// ===== ELEMENTOS DOM SIDE}
+
+if (exportListBtn) {
+    exportListBtn.addEventListener('click', () => {
+        const listText = currentItems
+            .map(item => `${item.bought ? '✅' : '☐'} ${item.name} (${item.qty}x)`)
+            .join('\n');
+        
+        try {
+            navigator.clipboard.writeText(listText);
+            alert('Lista copiada para a área de transferência!');
+        } catch {
+            prompt('Copie sua lista:', listText);
+        }
+    });
+}st sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarClose = document.getElementById('sidebar-close');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const navItems = document.querySelectorAll('.nav-item');
+const contentSections = document.querySelectorAll('.content-section');
+
+// Elementos DOM principais
 const itemInput = document.getElementById('item-input');
 const addItemBtn = document.getElementById('add-item-btn');
 const categorySelect = document.getElementById('category-select');
@@ -19,28 +42,96 @@ const autocompleteList = document.getElementById('autocomplete-list');
 const suggestionsSection = document.getElementById('smart-suggestions');
 const suggestionsList = document.getElementById('suggestions-list');
 const templateBtns = document.querySelectorAll('.template-btn');
-const scanQRBtn = document.getElementById('scan-qr-btn');
-const themeToggleBtn = document.getElementById('theme-toggle');
+
+// Elementos sidebar actions
+const sidebarShareBtn = document.getElementById('sidebar-share-btn');
+const sidebarExportBtn = document.getElementById('sidebar-export-btn');
+const sidebarScanBtn = document.getElementById('sidebar-scan-btn');
+
+// Stats elements (agora duplicados para sidebar)
+const totalItemsEl = document.getElementById('total-items');
+const completedItemsEl = document.getElementById('completed-items');
+const estimatedPriceEl = document.getElementById('estimated-price');
+const sidebarTotalItemsEl = document.getElementById('sidebar-total-items');
+const sidebarCompletedItemsEl = document.getElementById('sidebar-completed-items');
+const sidebarEstimatedPriceEl = document.getElementById('sidebar-estimated-price');
+
+// Elementos de funcionalidades extras que podem não existir no HTML atual
 const shareLinkBtn = document.getElementById('share-link-btn');
 const exportListBtn = document.getElementById('export-list-btn');
 const importListBtn = document.getElementById('import-list-btn');
 
-// Analytics elements (não implementados no HTML ainda)
-// const showReportBtn = document.getElementById('show-report-btn');
-// const showPatternsBtn = document.getElementById('show-patterns-btn');
-// const showSavingsBtn = document.getElementById('show-savings-btn');
-// const analyticsContent = document.getElementById('analytics-content');
+// ===== CONTROLE DA SIDEBAR =====
+function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    sidebarOverlay.classList.toggle('show');
+    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+}
 
-// Settings elements (não implementados no HTML ainda)
-// const notificationsEnabled = document.getElementById('notifications-enabled');
-// const smartSuggestionsEnabled = document.getElementById('smart-suggestions-enabled');
-// const priceTrackingEnabled = document.getElementById('price-tracking-enabled');
-// const autoCategoryEnabled = document.getElementById('auto-category-enabled');
+function closeSidebar() {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
 
-// Stats elements
-const totalItemsEl = document.getElementById('total-items');
-const completedItemsEl = document.getElementById('completed-items');
-const estimatedPriceEl = document.getElementById('estimated-price');
+function switchSection(sectionId) {
+    // Remove active de todas as seções e nav items
+    contentSections.forEach(section => section.classList.remove('active'));
+    navItems.forEach(item => item.classList.remove('active'));
+    
+    // Ativa a seção desejada
+    const targetSection = document.getElementById(`section-${sectionId}`);
+    const targetNavItem = document.querySelector(`[data-section="${sectionId}"]`);
+    
+    if (targetSection) targetSection.classList.add('active');
+    if (targetNavItem) targetNavItem.classList.add('active');
+    
+    // Fecha sidebar no mobile
+    if (window.innerWidth < 1024) {
+        closeSidebar();
+    }
+}
+
+// Event listeners para sidebar
+sidebarToggle?.addEventListener('click', toggleSidebar);
+sidebarClose?.addEventListener('click', closeSidebar);
+sidebarOverlay?.addEventListener('click', closeSidebar);
+
+// Event listeners para navegação
+navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sectionId = item.getAttribute('data-section');
+        if (sectionId) {
+            switchSection(sectionId);
+        }
+    });
+});
+
+// Event listeners para ações da sidebar
+sidebarShareBtn?.addEventListener('click', () => shareList());
+sidebarExportBtn?.addEventListener('click', () => exportList());
+sidebarScanBtn?.addEventListener('click', () => scanQRCode());
+
+// Fechar sidebar com tecla ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+        closeSidebar();
+    }
+});
+
+// Atualizar stats da sidebar quando stats principais mudarem
+function updateSidebarStats() {
+    if (sidebarTotalItemsEl && totalItemsEl) {
+        sidebarTotalItemsEl.textContent = totalItemsEl.textContent;
+    }
+    if (sidebarCompletedItemsEl && completedItemsEl) {
+        sidebarCompletedItemsEl.textContent = completedItemsEl.textContent;
+    }
+    if (sidebarEstimatedPriceEl && estimatedPriceEl) {
+        sidebarEstimatedPriceEl.textContent = estimatedPriceEl.textContent;
+    }
+}
 
 // Inicializar sistemas
 const intelligence = new IntelligenceManager();
@@ -80,7 +171,7 @@ function renderList(items = filteredItems) {
         li.className = 'shopping-item' + (item.bought ? ' item-bought' : '');
         li.innerHTML = `
             <div class="item-info">
-                <div class="item-name">
+                <div class="item-name" data-id="${item.id}" style="cursor: pointer;" title="Clique para marcar como comprado">
                     ${categoryIcon} ${item.name}
                     <span class="item-favorite ${isFavorite ? 'active' : ''}" data-id="${item.id}" title="Favoritar">
                         ${isFavorite ? '⭐' : '☆'}
@@ -135,6 +226,9 @@ function updateStats() {
     totalItemsEl.textContent = total;
     completedItemsEl.textContent = completed;
     estimatedPriceEl.textContent = `R$ ${totalPrice.toFixed(2)}`;
+    
+    // Atualizar também as stats da sidebar
+    updateSidebarStats();
 }
 
 // Atualiza lista filtrada
@@ -185,6 +279,56 @@ async function handleAddItem() {
     categorySelect.value = '';
     hideAutocomplete();
     refreshList();
+    
+    // Atualiza a seção de listas recentes com o novo item
+    updateRecentLists(newItem);
+}
+
+// Atualiza a seção de listas recentes no sidebar
+function updateRecentLists(newItem) {
+    const recentListsContainer = document.getElementById('recent-lists');
+    if (!recentListsContainer) return;
+    
+    // Cria um novo item para a lista recente
+    const recentItem = document.createElement('div');
+    recentItem.className = 'recent-item';
+    
+    // Define o ícone baseado na categoria do item
+    const categoryIcon = getCategoryIcon(newItem.category);
+    const categoryName = getCategoryDisplayName(newItem.category);
+    
+    recentItem.innerHTML = `
+        <span class="recent-icon">${categoryIcon}</span>
+        <div class="recent-info">
+            <span class="recent-name">${newItem.name}</span>
+            <span class="recent-date">${categoryName}</span>
+        </div>
+    `;
+    
+    // Remove o primeiro item se já existirem 3 ou mais
+    const existingItems = recentListsContainer.querySelectorAll('.recent-item');
+    if (existingItems.length >= 3) {
+        recentListsContainer.removeChild(existingItems[existingItems.length - 1]);
+    }
+    
+    // Adiciona o novo item no topo
+    recentListsContainer.insertBefore(recentItem, recentListsContainer.firstChild);
+}
+
+// Obtém o nome amigável da categoria
+function getCategoryDisplayName(category) {
+    const categoryNames = {
+        'frutas': 'Frutas',
+        'verduras': 'Verduras',
+        'carnes': 'Carnes',
+        'laticínios': 'Laticínios',
+        'padaria': 'Padaria',
+        'limpeza': 'Limpeza',
+        'higiene': 'Higiene',
+        'bebidas': 'Bebidas',
+        'outros': 'Outros'
+    };
+    return categoryNames[category] || 'Outros';
 }
 
 // Sistema de autocomplete
@@ -320,6 +464,19 @@ shoppingList.addEventListener('click', async e => {
         const isFavorite = intelligence.toggleFavorite(item.name);
         e.target.textContent = isFavorite ? '⭐' : '☆';
         e.target.classList.toggle('active', isFavorite);
+    } else if (e.target.classList.contains('item-name')) {
+        // Clique no nome do item - alterna status de comprado
+        const bought = !item.bought;
+        await dbUpdateItem(id, { bought });
+        
+        // Adiciona ao histórico quando marcado como comprado
+        if (bought) {
+            intelligence.addToPurchaseHistory({
+                ...item,
+                bought: true,
+                price: item.price || intelligence.getEstimatedPrice(item.name)
+            });
+        }
     }
     
     refreshList();
@@ -371,28 +528,30 @@ templateBtns.forEach(btn => {
 });
 
 // Funcionalidades de compartilhamento
-shareLinkBtn.addEventListener('click', async () => {
-    const items = currentItems.map(item => ({
-        name: item.name,
-        category: item.category,
-        qty: item.qty
-    }));
-    
-    const shareData = {
-        version: '1.0',
-        items,
-        createdAt: new Date().toISOString()
-    };
-    
-    const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${encodeURIComponent(btoa(JSON.stringify(shareData)))}`;
-    
-    try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert('Link de compartilhamento copiado para a área de transferência!');
-    } catch {
-        prompt('Copie este link para compartilhar sua lista:', shareUrl);
-    }
-});
+if (shareLinkBtn) {
+    shareLinkBtn.addEventListener('click', async () => {
+        const items = currentItems.map(item => ({
+            name: item.name,
+            category: item.category,
+            qty: item.qty
+        }));
+        
+        const shareData = {
+            version: '1.0',
+            items,
+            createdAt: new Date().toISOString()
+        };
+        
+        const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${encodeURIComponent(btoa(JSON.stringify(shareData)))}`;
+        
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            alert('Link de compartilhamento copiado para a área de transferência!');
+        } catch {
+            prompt('Copie este link para compartilhar sua lista:', shareUrl);
+        }
+    });
+}
 
 exportListBtn.addEventListener('click', () => {
     const listText = currentItems
@@ -464,9 +623,6 @@ importListBtn.addEventListener('click', () => {
     input.click();
 });
 
-// Tema
-// O event listener do tema está no final do arquivo
-
 // QR Code (placeholder)
 scanQRBtn.addEventListener('click', () => {
     scanQRCode().then(result => {
@@ -480,13 +636,8 @@ scanQRBtn.addEventListener('click', () => {
     });
 });
 
-// Carrega tema salvo
+// Carrega configurações salvas
 document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('listou-theme');
-    if (savedTheme === 'light') {
-        document.documentElement.classList.add('theme-light');
-    }
-    
     // Verifica se há lista compartilhada na URL
     const urlParams = new URLSearchParams(window.location.search);
     const sharedData = urlParams.get('shared');
@@ -535,62 +686,3 @@ refreshList();
 
 // TODO: Integrar Capacitor para build Android e acesso à câmera
 // https://capacitorjs.com/docs/apis/camera
-
-// ===== Tema (dark / light) =====
-const THEME_KEY = 'listou-theme';
-
-function updateMetaThemeColor(theme){
-    const meta = document.getElementById('meta-theme-color');
-    if(!meta) return;
-    meta.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#252830');
-}
-
-function applyTheme(theme, {persist=true, animate=true} = {}){
-    const root = document.documentElement;
-    console.log('Aplicando tema:', theme);
-    if(animate) root.classList.add('theme-transition');
-    if(theme === 'light') root.classList.add('theme-light'); else root.classList.remove('theme-light');
-    if(persist) localStorage.setItem(THEME_KEY, theme);
-    updateMetaThemeColor(theme);
-    
-    // Atualizar botão se existir
-    if(themeToggleBtn) {
-        if(theme === 'light') {
-            themeToggleBtn.textContent = '☀️';
-            themeToggleBtn.setAttribute('aria-label','Alternar para modo noturno');
-            themeToggleBtn.dataset.mode = 'light';
-        } else {
-            themeToggleBtn.textContent = '🌙';
-            themeToggleBtn.setAttribute('aria-label','Alternar para modo claro');
-            themeToggleBtn.dataset.mode = 'dark';
-        }
-        console.log('Botão atualizado para:', theme, 'ícone:', themeToggleBtn.textContent);
-    }
-    
-    // Remover classe de transição após animação
-    clearTimeout(applyTheme._t);
-    applyTheme._t = setTimeout(()=> root.classList.remove('theme-transition'), 500);
-}
-
-function detectPreferredTheme(){
-    const stored = localStorage.getItem(THEME_KEY);
-    if(stored) return stored;
-    return 'light'; // Padrão sempre claro
-}
-
-// Evita flash inicial
-document.documentElement.classList.add('theme-preload');
-const initialTheme = detectPreferredTheme();
-applyTheme(initialTheme, {persist:false, animate:false});
-requestAnimationFrame(()=> document.documentElement.classList.remove('theme-preload'));
-
-// Event listener do botão (só adiciona se o botão existir)
-if(themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', ()=>{
-        const current = localStorage.getItem(THEME_KEY) || 'light';
-        console.log('Tema atual:', current, 'Alternando para:', current === 'dark' ? 'light' : 'dark');
-        applyTheme(current === 'dark' ? 'light' : 'dark');
-    });
-} else {
-    console.error('Botão theme-toggle não encontrado!');
-}
