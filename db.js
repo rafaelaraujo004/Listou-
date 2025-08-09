@@ -53,11 +53,19 @@ export async function dbUpdateItem(id, update) {
         getReq.onsuccess = () => {
             const item = getReq.result;
             if (!item) return resolve();
+            
+            // Atualizações incrementais
             if (update.$inc) {
                 item.qty = (item.qty || 1) + (update.$inc.qty || 0);
             }
+            
+            // Atualizações diretas
             if (update.qty !== undefined) item.qty = update.qty;
             if (update.bought !== undefined) item.bought = update.bought;
+            if (update.price !== undefined) item.price = update.price;
+            if (update.name !== undefined) item.name = update.name;
+            if (update.category !== undefined) item.category = update.category;
+            
             store.put(item);
         };
         tx.oncomplete = resolve;

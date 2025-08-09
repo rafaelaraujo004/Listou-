@@ -7,7 +7,8 @@
     <meta name="theme-color" content="#ffffff">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles.css">
-    <!-- TODO: Integrar ZXing/jsQR via CDN para leitura de QRCode -->
+    <!-- Biblioteca para leitura de QRCode -->
+    <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
     <!-- Sidebar Toggle Button -->
@@ -51,24 +52,6 @@
             </a>
         </nav>
 
-        <div class="sidebar-stats">
-            <h3>Estatísticas Rápidas</h3>
-            <div class="quick-stats">
-                <div class="quick-stat">
-                    <span class="stat-number" id="sidebar-total-items">0</span>
-                    <span class="stat-text">Itens Total</span>
-                </div>
-                <div class="quick-stat">
-                    <span class="stat-number" id="sidebar-completed-items">0</span>
-                    <span class="stat-text">Comprados</span>
-                </div>
-                <div class="quick-stat">
-                    <span class="stat-number" id="sidebar-estimated-price">R$ 0</span>
-                    <span class="stat-text">Estimativa</span>
-                </div>
-            </div>
-        </div>
-
         <div class="sidebar-recent">
             <h3>Listas Recentes</h3>
             <div id="recent-lists" class="recent-lists">
@@ -108,6 +91,7 @@
             <button id="sidebar-scan-btn" class="sidebar-action-btn">
                 <span class="action-icon">📱</span>
                 <span class="action-text">Escanear QR</span>
+                <span class="test-badge">TESTE</span>
             </button>
         </div>
     </aside>
@@ -129,6 +113,13 @@
                     <input id="item-input" type="text" placeholder="Adicionar item... (Enter ou Ctrl+Enter)" autocomplete="off" autofocus>
                     <div id="autocomplete-list" class="autocomplete-hidden"></div>
                 </div>
+                <div class="input-container" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input id="item-qty-input" type="number" min="1" step="1" placeholder="Qtd" style="width: 70px;">
+                    <div class="input-price-wrapper" style="position: relative; display: flex; align-items: center;">
+                        <span class="input-price-symbol" style="position: absolute; left: 10px; color: #888; font-size: 1rem; pointer-events: none;">R$</span>
+                        <input id="item-price-input" type="number" min="0" step="0.01" placeholder="Valor" style="padding-left: 2.2em; width: 90px;">
+                    </div>
+                </div>
                 <select id="category-select">
                     <option value="">Categoria</option>
                     <option value="frutas">🍎 Frutas</option>
@@ -144,29 +135,6 @@
                 <button id="add-item-btn" title="Adicionar (Enter)">+</button>
             </section>
 
-            <section id="filters-section">
-                <div class="filter-controls">
-                    <input id="search-input" type="text" placeholder="Buscar itens..." class="search-input">
-                    <select id="filter-category">
-                        <option value="">Todas as categorias</option>
-                        <option value="frutas">🍎 Frutas</option>
-                        <option value="verduras">🥬 Verduras</option>
-                        <option value="carnes">🥩 Carnes</option>
-                        <option value="laticínios">🥛 Laticínios</option>
-                        <option value="padaria">🍞 Padaria</option>
-                        <option value="limpeza">🧽 Limpeza</option>
-                        <option value="higiene">🧴 Higiene</option>
-                        <option value="bebidas">🥤 Bebidas</option>
-                        <option value="outros">📦 Outros</option>
-                    </select>
-                    <select id="filter-status">
-                        <option value="all">Todos os itens</option>
-                        <option value="pending">Pendentes</option>
-                        <option value="bought">Comprados</option>
-                    </select>
-                </div>
-            </section>
-
             <section id="stats-section" class="stats-section">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -178,18 +146,37 @@
                         <span class="stat-label">Comprados</span>
                     </div>
                     <div class="stat-card">
-                        <span class="stat-value" id="estimated-price">R$ 0</span>
-                        <span class="stat-label">Estimativa</span>
+                        <span class="stat-value" id="total-value">R$ 0,00</span>
+                        <span class="stat-label">Valor Previsto</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="realized-value">R$ 0,00</span>
+                        <span class="stat-label">Valor Realizado</span>
                     </div>
                 </div>
             </section>
 
             <section id="smart-suggestions" class="suggestions-section">
+                <h3>🤖 Assistente IA Inteligente</h3>
+                <div class="test-warning">
+                    ⚠️ <strong>Funcionalidade em Teste</strong> - Esta feature pode não funcionar plenamente ainda.
+                </div>
+                <div class="ai-assistant">
+                    <div class="ai-input-container">
+                        <input id="ai-voice-input" type="text" placeholder="Experimente: 'Adicionar frutas para vitamina C'" class="ai-input">
+                        <button id="ai-voice-btn" class="ai-voice-btn" title="Comando por voz">🎤</button>
+                        <button id="ai-send-btn" class="ai-send-btn" title="Enviar">💬</button>
+                    </div>
+                    <div id="ai-response" class="ai-response"></div>
+                </div>
                 <h3>💡 Sugestões Inteligentes</h3>
                 <div id="suggestions-list"></div>
             </section>
 
-            <ul id="shopping-list"></ul>
+            <section id="current-list-section" class="current-list-section">
+                <h3>🛒 Minha Lista de Compras</h3>
+                <ul id="shopping-list"></ul>
+            </section>
         </section>
         <!-- Templates Section -->
         <section id="section-templates" class="content-section">
@@ -403,7 +390,7 @@
                     <div class="about-info">
                         <p><strong>Listou</strong> v2.0</p>
                         <p>Lista de compras inteligente</p>
-                        <p>Desenvolvido com ❤️</p>
+                        <p>Desenvolvido por Rafael Araújo </p>
                     </div>
                 </div>
             </div>
@@ -413,8 +400,11 @@
     <!-- Overlay for mobile sidebar -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-    <script src="db.js"></script>
-    <script src="qr.js"></script>
-    <script src="app.js"></script>
+    <script src="db.js" type="module"></script>
+    <script src="qr.js" type="module"></script>
+    <script src="intelligence.js" type="module"></script>
+    <script src="analytics.js" type="module"></script>
+    <script src="notifications.js" type="module"></script>
+    <script src="app.js" type="module"></script>
 </body>
 </html>

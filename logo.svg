@@ -1,48 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Logo: Listou - Circular, cesta vista de cima, lista em espiral, verde e roxo -->
+<!-- Logo: Listou - Prancheta com itens selecionados, visual de app todo -->
 <svg id="listou-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="title desc">
   <title id="title">Listou</title>
-  <desc id="desc">Logo inovadora: formato circular, cesta de compras vista de cima, lista em espiral colorida, verde e roxo</desc>
+  <desc id="desc">Logo com prancheta e itens selecionados, visual de app todo, tons suaves</desc>
   <defs>
     <radialGradient id="bg" cx="64" cy="64" r="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#a7f3d0"/>
-      <stop offset="100%" stop-color="#312e81"/>
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
     </radialGradient>
-    <linearGradient id="basket" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#a3e635"/>
-      <stop offset="100%" stop-color="#22d3ee"/>
+    <linearGradient id="clipboardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
     </linearGradient>
-    <linearGradient id="spiral" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#c026d3"/>
-      <stop offset="100%" stop-color="#fbbf24"/>
+    <linearGradient id="paperGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f9fafb"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
     </filter>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000" flood-opacity="0.18"/>
+    <filter id="gentleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.06"/>
     </filter>
   </defs>
 
-  <!-- Fundo circular com gradiente -->
-  <circle cx="64" cy="64" r="64" fill="url(#bg)"/>
+  <!-- Fundo azul claro tranquilo -->
+  <rect x="0" y="0" width="128" height="128" rx="20" fill="url(#bg)"/>
 
-  <!-- Cesta de compras vista de cima -->
-  <ellipse cx="64" cy="80" rx="32" ry="18" fill="url(#basket)" filter="url(#shadow)"/>
-  <ellipse cx="64" cy="80" rx="24" ry="10" fill="#fff" opacity="0.8"/>
-  <!-- Alças -->
-  <path d="M48 68 Q64 54 80 68" stroke="#fff" stroke-width="3" fill="none"/>
+  <!-- Sombra da prancheta -->
+  <ellipse cx="64" cy="100" rx="30" ry="6" fill="#0ea5e9" opacity="0.08"/>
 
-  <!-- Lista em espiral colorida -->
-  <path d="M64 60 Q74 62 70 72 Q66 82 80 84 Q94 86 84 98 Q74 110 64 100 Q54 90 44 98 Q34 106 44 84 Q54 62 64 60" stroke="url(#spiral)" stroke-width="4" fill="none" filter="url(#glow)"/>
+  <!-- Prancheta -->
+  <rect x="40" y="32" width="48" height="64" rx="6" fill="url(#clipboardGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Clipe da prancheta -->
+  <rect x="58" y="28" width="12" height="8" rx="2" fill="#64748b" opacity="0.7"/>
+  <rect x="60" y="30" width="8" height="4" rx="1" fill="#94a3b8" opacity="0.8"/>
 
-  <!-- Efeito de brilho -->
-  <ellipse cx="64" cy="116" rx="20" ry="5" fill="#fff" opacity="0.13"/>
+  <!-- Papel da lista -->
+  <rect x="44" y="40" width="40" height="52" rx="3" fill="url(#paperGradient)" filter="url(#gentleShadow)"/>
 
-  <!-- Detalhe de brilho na cesta -->
-  <ellipse cx="74" cy="86" rx="7" ry="2" fill="#fff" opacity="0.18"/>
+  <!-- Linhas de itens da lista -->
+  <!-- Item 1 - Selecionado -->
+  <circle cx="50" cy="50" r="4" fill="url(#checkGradient)" opacity="0.9"/>
+  <path d="M48 50 L49.5 51.5 L52 49" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <rect x="58" y="48" width="20" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <line x1="58" y1="50" x2="78" y2="50" stroke="#94a3b8" stroke-width="1" opacity="0.3"/>
+
+  <!-- Item 2 - Selecionado -->
+  <circle cx="50" cy="62" r="4" fill="url(#checkGradient)" opacity="0.9"/>
+  <path d="M48 62 L49.5 63.5 L52 61" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <rect x="58" y="60" width="18" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <line x1="58" y1="62" x2="76" y2="62" stroke="#94a3b8" stroke-width="1" opacity="0.3"/>
+
+  <!-- Item 3 - Não selecionado -->
+  <circle cx="50" cy="74" r="4" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <rect x="58" y="72" width="16" height="2" rx="1" fill="#64748b" opacity="0.6"/>
+
+  <!-- Item 4 - Selecionado -->
+  <circle cx="50" cy="86" r="4" fill="url(#checkGradient)" opacity="0.9"/>
+  <path d="M48 86 L49.5 87.5 L52 85" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <rect x="58" y="84" width="22" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+  <line x1="58" y1="86" x2="80" y2="86" stroke="#94a3b8" stroke-width="1" opacity="0.3"/>
+
+  <!-- Detalhes de brilho suaves -->
+  <ellipse cx="64" cy="20" rx="16" ry="3" fill="#ffffff" opacity="0.3"/>
+  <ellipse cx="64" cy="112" rx="24" ry="4" fill="#0ea5e9" opacity="0.04"/>
+  
+  <!-- Pontos decorativos tranquilos -->
+  <circle cx="108" cy="36" r="2" fill="#34d399" opacity="0.4"/>
+  <circle cx="24" cy="88" r="1.5" fill="#60a5fa" opacity="0.5"/>
+  <circle cx="100" cy="100" r="1" fill="#a78bfa" opacity="0.4"/>
 </svg>
