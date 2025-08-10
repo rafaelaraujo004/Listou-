@@ -5,7 +5,8 @@
 // Import com tratamento de erro
 async function loadModules() {
     try {
-        const { dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, dbGetTemplates, dbLoadTemplate } = await import('./db.js');
+        const { dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, dbGetTemplates, dbLoadTemplate, 
+                dbAddSupermarket, dbGetSupermarkets, dbUpdateSupermarket, dbDeleteSupermarket, dbGetSupermarketById } = await import('./db.js');
         const { scanQRCode } = await import('./qr.js');
         const { IntelligenceManager } = await import('./intelligence.js');
         const { AnalyticsManager } = await import('./analytics.js');
@@ -13,6 +14,7 @@ async function loadModules() {
         
         return {
             dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, dbGetTemplates, dbLoadTemplate,
+            dbAddSupermarket, dbGetSupermarkets, dbUpdateSupermarket, dbDeleteSupermarket, dbGetSupermarketById,
             scanQRCode, IntelligenceManager, AnalyticsManager, NotificationManager
         };
     } catch (error) {
@@ -22,28 +24,8 @@ async function loadModules() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Botão Selecionar Todos
+    // Event listeners para botões principais
     document.body.addEventListener('click', async (e) => {
-        if (e.target && e.target.id === 'select-all-btn') {
-            const itemsToComplete = currentItems.filter(item => !item.bought);
-            for (const item of itemsToComplete) {
-                await dbUpdateItem(item.id, { bought: true });
-                intelligence.addToPurchaseHistory({
-                    ...item,
-                    bought: true,
-                    price: item.price || intelligence.getEstimatedPrice(item.name)
-                });
-            }
-            if (analytics && itemsToComplete.length > 0) {
-                const purchaseItems = itemsToComplete.map(item => ({
-                    ...item,
-                    price: item.price || intelligence.getEstimatedPrice(item.name)
-                }));
-                const totalSpent = purchaseItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-                analytics.recordPurchase(purchaseItems, totalSpent);
-            }
-            refreshList();
-        }
         // Botão Limpar Lista
         if (e.target && e.target.id === 'clear-all-btn') {
             if (currentItems.length === 0) return;
@@ -52,6 +34,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await dbDeleteItem(item.id);
             }
             refreshList();
+        }
+        // Botão Finalizar Compra
+        if (e.target && e.target.id === 'finish-purchase-btn') {
+            await finalizePurchase();
         }
         // Botão Limpar Todos os Dados (configurações)
         if (e.target && e.target.id === 'clear-data-btn') {
@@ -235,7 +221,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    const { dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, IntelligenceManager, AnalyticsManager, NotificationManager } = modules;
+    const { dbAddItem, dbGetItems, dbUpdateItem, dbDeleteItem, IntelligenceManager, AnalyticsManager, NotificationManager,
+            dbAddSupermarket, dbGetSupermarkets, dbUpdateSupermarket, dbDeleteSupermarket, dbGetSupermarketById } = modules;
 // ===== ELEMENTOS DOM SIDEBAR =====
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
@@ -315,6 +302,11 @@ function switchSection(sectionId) {
         updateAnalyticsData();
     }
     
+    // Carrega dados quando navegar para supermercados
+    if (sectionId === 'supermarkets') {
+        loadSupermarkets();
+    }
+    
     // Fecha sidebar no mobile
     if (window.innerWidth < 1024) {
         closeSidebar();
@@ -381,11 +373,6 @@ if (exportPdfReportBtn) {
     exportPdfReportBtn.addEventListener('click', exportReportAsPDF);
 }
 
-const showImprovementTipsBtn = document.getElementById('show-improvement-tips-btn');
-if (showImprovementTipsBtn) {
-    showImprovementTipsBtn.addEventListener('click', showImprovementTips);
-}
-
 // Event listener para filtro de supermercado
 const supermarketFilter = document.getElementById('supermarket-filter');
 if (supermarketFilter) {
@@ -398,6 +385,31 @@ if (supermarketInput) {
     supermarketInput.addEventListener('blur', saveSupermarketName);
     supermarketInput.addEventListener('change', saveSupermarketName);
 }
+
+// Event listeners para tipo de compra
+const changePurchaseTypeBtn = document.getElementById('change-purchase-type-btn');
+if (changePurchaseTypeBtn) {
+    changePurchaseTypeBtn.addEventListener('click', showPurchaseTypeModal);
+}
+
+// Event listeners para modal de tipo de compra
+document.addEventListener('click', (e) => {
+    if (e.target.matches('.purchase-type-option')) {
+        const purchaseType = e.target.getAttribute('data-type');
+        selectPurchaseType(purchaseType);
+    }
+});
+
+// Event listeners para marcar itens como comprados
+document.addEventListener('click', (e) => {
+    // Clique no nome do item ou no checkbox
+    if (e.target.matches('.item-name') || e.target.matches('.item-checkbox')) {
+        const listItem = e.target.closest('.list-item');
+        if (listItem) {
+            toggleItemPurchased(listItem);
+        }
+    }
+});
 
 // Event delegation para criar novo template
 document.body.addEventListener('click', (e) => {
@@ -451,6 +463,14 @@ try {
     intelligence = new IntelligenceManager();
     analytics = new AnalyticsManager();
     notifications = new NotificationManager();
+    
+    // Disponibiliza funções de supermercado globalmente
+    window.dbAddSupermarket = dbAddSupermarket;
+    window.dbGetSupermarkets = dbGetSupermarkets;
+    window.dbUpdateSupermarket = dbUpdateSupermarket;
+    window.dbDeleteSupermarket = dbDeleteSupermarket;
+    window.dbGetSupermarketById = dbGetSupermarketById;
+    
     console.log('Sistemas inicializados com sucesso');
 } catch (error) {
     console.error('Erro ao inicializar sistemas:', error);
@@ -459,6 +479,8 @@ try {
 let currentItems = [];
 let filteredItems = [];
 let isRecording = false;
+let supermarkets = [];
+let currentSupermarket = null;
 
 // Debounce para otimizar performance
 function debounce(func, wait) {
@@ -520,12 +542,14 @@ function renderList(items = filteredItems) {
                     </div>
                 </div>
             </div>
-            <input class="item-qty" type="number" min="1" value="${item.qty}" data-id="${item.id}">
-            <div class="item-actions">
-                <button class="bought-btn ${item.bought ? 'active' : ''}" data-id="${item.id}" title="Marcar como comprado">
-                    ${item.bought ? '✅' : '✓'}
-                </button>
-                <button class="delete-btn" data-id="${item.id}" title="Remover item">🗑️</button>
+            <div class="qty-actions-container">
+                <input class="item-qty" type="number" min="1" value="${item.qty}" data-id="${item.id}">
+                <div class="item-actions">
+                    <button class="bought-btn ${item.bought ? 'active' : ''}" data-id="${item.id}" title="Marcar como comprado">
+                        ${item.bought ? '✅' : '✓'}
+                    </button>
+                    <button class="delete-btn" data-id="${item.id}" title="Remover item">🗑️</button>
+                </div>
             </div>
         `;
         shoppingList.appendChild(li);
@@ -582,6 +606,9 @@ async function updateAnalyticsData() {
     if (!analytics) return;
 
     try {
+        // Obter dados do histórico de compras local apenas
+        const purchaseHistory = JSON.parse(localStorage.getItem('listou-purchase-history') || '[]');
+        
         // Obter período selecionado
         const periodSelect = document.getElementById('analytics-period');
         const selectedPeriod = periodSelect ? periodSelect.value : 'month';
@@ -604,43 +631,54 @@ async function updateAnalyticsData() {
                 startDate.setMonth(now.getMonth() - 1);
         }
         
-        // Filtrar dados de compra por período
-        const filteredPurchases = analytics.purchaseData.filter(purchase => {
+        // Filtrar compras do usuário por período
+        const filteredPurchases = purchaseHistory.filter(purchase => {
             const purchaseDate = new Date(purchase.date);
             return purchaseDate >= startDate;
         });
         
-        // Calcular dados agregados para o período
+        // Calcular dados agregados apenas dos dados do usuário
         const periodData = {
             categories: {},
             products: {},
-            totalSpent: 0
+            totalSpent: 0,
+            supermarkets: {}
         };
         
         filteredPurchases.forEach(purchase => {
-            periodData.totalSpent += purchase.totalSpent;
+            periodData.totalSpent += purchase.totalSpent || 0;
             
-            purchase.items.forEach(item => {
-                const category = item.category || 'outros';
-                const productName = item.name.toLowerCase();
-                
-                // Agregar por categoria
-                if (!periodData.categories[category]) {
-                    periodData.categories[category] = { totalSpent: 0, itemCount: 0 };
-                }
-                periodData.categories[category].totalSpent += item.totalPrice;
-                periodData.categories[category].itemCount += item.quantity;
-                
-                // Agregar por produto
-                if (!periodData.products[productName]) {
-                    periodData.products[productName] = { count: 0, totalSpent: 0, name: item.name };
-                }
-                periodData.products[productName].count += item.quantity;
-                periodData.products[productName].totalSpent += item.totalPrice;
-            });
+            // Agregar por supermercado
+            const supermarket = purchase.supermarket || 'Não informado';
+            if (!periodData.supermarkets[supermarket]) {
+                periodData.supermarkets[supermarket] = { totalSpent: 0, purchaseCount: 0 };
+            }
+            periodData.supermarkets[supermarket].totalSpent += purchase.totalSpent || 0;
+            periodData.supermarkets[supermarket].purchaseCount += 1;
+            
+            if (purchase.items && Array.isArray(purchase.items)) {
+                purchase.items.forEach(item => {
+                    const category = item.category || 'outros';
+                    const productName = item.name.toLowerCase();
+                    
+                    // Agregar por categoria
+                    if (!periodData.categories[category]) {
+                        periodData.categories[category] = { totalSpent: 0, itemCount: 0 };
+                    }
+                    periodData.categories[category].totalSpent += item.totalPrice || 0;
+                    periodData.categories[category].itemCount += item.quantity || 1;
+                    
+                    // Agregar por produto
+                    if (!periodData.products[productName]) {
+                        periodData.products[productName] = { count: 0, totalSpent: 0, name: item.name };
+                    }
+                    periodData.products[productName].count += item.quantity || 1;
+                    periodData.products[productName].totalSpent += item.totalPrice || 0;
+                });
+            }
         });
         
-        // Atualiza gastos por categoria
+        // Atualiza gastos por categoria - apenas dados do usuário
         const categoryContainer = document.querySelector('.chart-placeholder');
         if (categoryContainer) {
             categoryContainer.innerHTML = '';
@@ -664,7 +702,7 @@ async function updateAnalyticsData() {
             }
         }
         
-        // Atualiza itens mais comprados
+        // Atualiza itens mais comprados - apenas dados do usuário
         const topItemsContainer = document.querySelector('.top-items');
         if (topItemsContainer) {
             topItemsContainer.innerHTML = '';
@@ -689,46 +727,63 @@ async function updateAnalyticsData() {
             }
         }
         
-        // Atualiza economia
-        const savingsAmountEl = document.querySelector('.savings-amount');
-        const savingsDescEl = document.querySelector('.savings-desc');
-        const savingsTipEl = document.querySelector('.savings-tip');
-        
-        if (savingsAmountEl) {
-            // Calcular economia potencial baseada nos dados históricos
-            let potentialSavings = 0;
+        // Atualiza ranking de supermercados - apenas dados do usuário
+        const supermarketRanking = document.getElementById('supermarket-ranking');
+        if (supermarketRanking) {
+            supermarketRanking.innerHTML = '';
             
-            // Exemplo de cálculo: 5% do total gasto pode ser economizado
-            if (periodData.totalSpent > 0) {
-                potentialSavings = periodData.totalSpent * 0.05;
-            }
+            const sortedSupermarkets = Object.entries(periodData.supermarkets)
+                .sort((a, b) => (a[1].totalSpent / a[1].purchaseCount) - (b[1].totalSpent / b[1].purchaseCount))
+                .slice(0, 4);
             
-            savingsAmountEl.textContent = `R$ ${potentialSavings.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            
-            if (savingsDescEl) {
-                if (potentialSavings > 0) {
-                    savingsDescEl.textContent = 'Economia potencial no período';
-                } else {
-                    savingsDescEl.textContent = 'Continue comprando para gerar insights';
-                }
-            }
-            
-            if (savingsTipEl) {
-                const tips = [
-                    'Compare preços entre diferentes estabelecimentos',
-                    'Compre produtos da estação para economizar',
-                    'Evite compras por impulso',
-                    'Faça uma lista antes de ir às compras',
-                    'Aproveite promoções em produtos não perecíveis'
-                ];
-                const randomTip = tips[Math.floor(Math.random() * tips.length)];
-                savingsTipEl.textContent = `💡 ${randomTip}`;
+            if (sortedSupermarkets.length === 0) {
+                supermarketRanking.innerHTML = '<div class="no-data">Nenhuma compra com supermercado informado</div>';
+            } else {
+                sortedSupermarkets.forEach(([supermarket, data], index) => {
+                    const avgSpent = data.totalSpent / data.purchaseCount;
+                    const rankClass = index === 0 ? 'best' : index === 1 ? 'good' : index === 2 ? 'average' : 'expensive';
+                    
+                    const rankDiv = document.createElement('div');
+                    rankDiv.className = `ranking-item ${rankClass}`;
+                    rankDiv.innerHTML = `
+                        <span class="rank-position">${index + 1}º</span>
+                        <span class="supermarket-name">${supermarket}</span>
+                        <span class="price-diff">R$ ${avgSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    `;
+                    supermarketRanking.appendChild(rankDiv);
+                });
             }
         }
         
-        // Atualizar relatórios comparativos se disponível
-        if (analytics && typeof analytics.generateCompetitiveReport === 'function') {
-            updateCompetitiveReports();
+        // Atualiza economia baseada apenas em dados do usuário
+        const savingsAmountEl = document.querySelector('.savings-amount');
+        const savingsDescEl = document.querySelector('.savings-desc');
+        const monthlySpendingEl = document.getElementById('monthly-spending');
+        
+        if (savingsAmountEl) {
+            if (periodData.totalSpent > 0) {
+                savingsAmountEl.textContent = `R$ ${periodData.totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            } else {
+                savingsAmountEl.textContent = 'R$ 0,00';
+            }
+            
+            if (savingsDescEl) {
+                if (periodData.totalSpent > 0) {
+                    savingsDescEl.textContent = 'Total gasto no período';
+                } else {
+                    savingsDescEl.textContent = 'Nenhuma compra registrada';
+                }
+            }
+        }
+        
+        if (monthlySpendingEl) {
+            monthlySpendingEl.textContent = `R$ ${periodData.totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+        
+        // Remove comparações com dados externos - apenas mostra dados do usuário
+        const comparisonValue = document.querySelector('.comparison-value');
+        if (comparisonValue) {
+            comparisonValue.textContent = `R$ ${periodData.totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
         
     } catch (error) {
@@ -1838,7 +1893,7 @@ shoppingList.addEventListener('click', async e => {
                     ...item,
                     price: item.price || intelligence.getEstimatedPrice(item.name)
                 };
-                analytics.recordPurchase([purchaseItem], purchaseItem.price * purchaseItem.qty);
+                analytics.recordPurchase([purchaseItem], purchaseItem.price * purchaseItem.qty, null, currentSupermarket?.name);
             }
         }
         
@@ -2237,7 +2292,268 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// ==================== FUNÇÕES DE SUPERMERCADO E COMPARAÇÃO ====================
+// ==================== FUNÇÕES DE TIPO DE COMPRA ====================
+
+// Verifica se é a primeira vez que o usuário abre o app e mostra modal
+function checkFirstTimeUser() {
+    const hasSelectedPurchaseType = localStorage.getItem('listou-purchase-type');
+    
+    if (!hasSelectedPurchaseType) {
+        showPurchaseTypeModal();
+    } else {
+        // Usuário já escolheu o tipo de compra, garantir que o modal esteja escondido
+        hidePurchaseTypeModal();
+        updatePurchaseTypeBadge(hasSelectedPurchaseType);
+    }
+}
+
+// Mostra o modal de seleção de tipo de compra
+function showPurchaseTypeModal() {
+    const modal = document.getElementById('purchase-type-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Previne scroll do body
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Esconde o modal de seleção de tipo de compra
+function hidePurchaseTypeModal() {
+    const modal = document.getElementById('purchase-type-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        // Restaura scroll do body
+        document.body.style.overflow = '';
+    }
+}
+
+// Seleciona o tipo de compra
+function selectPurchaseType(type) {
+    localStorage.setItem('listou-purchase-type', type);
+    updatePurchaseTypeBadge(type);
+    hidePurchaseTypeModal();
+    
+    // Mostra notificação de confirmação
+    if (type === 'controlled') {
+        showNotification('✅ Compra Controlada ativada! Seus dados serão utilizados para relatórios.', 'success');
+    } else {
+        showNotification('🛍️ Compra Avulsa ativada! Nenhum dado será salvo para relatórios.', 'info');
+    }
+    
+    console.log(`Tipo de compra selecionado: ${type}`);
+}
+
+// Atualiza o badge do tipo de compra
+function updatePurchaseTypeBadge(type) {
+    const badge = document.getElementById('purchase-type-badge');
+    if (!badge) return;
+    
+    if (type === 'controlled') {
+        badge.textContent = '📊 Controlada';
+        badge.className = 'purchase-type-badge';
+    } else {
+        badge.textContent = '🛍️ Avulsa';
+        badge.className = 'purchase-type-badge casual';
+    }
+}
+
+// Verifica se os dados devem ser salvos para analytics
+function shouldSaveToAnalytics() {
+    const purchaseType = localStorage.getItem('listou-purchase-type');
+    return purchaseType === 'controlled';
+}
+
+// ==================== FUNÇÕES DE MARCAR ITENS COMO COMPRADOS ====================
+
+// Alterna o estado de comprado do item
+function toggleItemPurchased(listItem) {
+    const isPurchased = listItem.classList.contains('purchased');
+    
+    if (isPurchased) {
+        // Remove estado de comprado
+        listItem.classList.remove('purchased');
+        updateItemInDatabase(listItem, { purchased: false });
+        showNotification('Item desmarcado como comprado', 'info');
+    } else {
+        // Marca como comprado
+        listItem.classList.add('purchased');
+        updateItemInDatabase(listItem, { purchased: true });
+        showNotification('Item marcado como comprado ✓', 'success');
+        
+        // Adiciona pequena animação de confirmação
+        listItem.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            listItem.style.transform = '';
+        }, 200);
+    }
+}
+
+// Atualiza item no banco de dados
+async function updateItemInDatabase(listItem, updates) {
+    try {
+        const itemId = listItem.getAttribute('data-id');
+        if (itemId && window.dbUpdateItem) {
+            await dbUpdateItem(parseInt(itemId), updates);
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar item no banco:', error);
+    }
+}
+
+// Mostra notificação para o usuário
+function showNotification(message, type = 'info') {
+    // Remove notificações existentes
+    const existingNotifications = document.querySelectorAll('.app-notification');
+    existingNotifications.forEach(n => n.remove());
+    
+    // Cria nova notificação
+    const notification = document.createElement('div');
+    notification.className = `app-notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    // Adiciona estilos inline para a notificação
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#007bff'};
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 1500;
+        max-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove automaticamente após 3 segundos
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 3000);
+}
+
+// Atualiza a lista para mostrar itens comprados
+function updateListItemsDisplay() {
+    const listItems = document.querySelectorAll('.list-item');
+    listItems.forEach(item => {
+        const itemId = item.getAttribute('data-id');
+        if (itemId && window.getItemById) {
+            getItemById(parseInt(itemId)).then(dbItem => {
+                if (dbItem && dbItem.purchased) {
+                    item.classList.add('purchased');
+                }
+            }).catch(console.error);
+        }
+    });
+}
+
+// Modifica a função refreshList existente para incluir estado de comprado
+const originalRefreshList = window.refreshList;
+if (originalRefreshList) {
+    window.refreshList = function() {
+        originalRefreshList.apply(this, arguments);
+        // Aguarda um pouco para a lista ser renderizada
+        setTimeout(updateListItemsDisplay, 100);
+    };
+}
+
+// ==================== MODIFICAÇÕES NA FUNÇÃO DE COMPRA ====================
+
+// Modifica a função de finalizar compra para considerar o tipo de compra
+function finalizePurchaseWithType(items, totalSpent) {
+    if (shouldSaveToAnalytics() && analytics) {
+        // Salva dados para analytics apenas se for compra controlada
+        analytics.recordPurchase(items, totalSpent, null, currentSupermarket?.name);
+        console.log('Dados da compra salvos para analytics');
+    } else {
+        console.log('Compra avulsa - dados não salvos para analytics');
+    }
+    
+    // Limpa itens comprados da lista
+    clearPurchasedItems();
+}
+
+// Remove itens marcados como comprados da lista
+async function clearPurchasedItems() {
+    try {
+        const purchasedItems = document.querySelectorAll('.list-item.purchased');
+        
+        for (const item of purchasedItems) {
+            const itemId = item.getAttribute('data-id');
+            if (itemId && window.dbDeleteItem) {
+                await dbDeleteItem(parseInt(itemId));
+            }
+        }
+        
+        // Atualiza a lista
+        if (window.refreshList) {
+            refreshList();
+        }
+        
+        showNotification('Itens comprados removidos da lista', 'success');
+    } catch (error) {
+        console.error('Erro ao remover itens comprados:', error);
+        showNotification('Erro ao remover itens comprados', 'warning');
+    }
+}
+
+// Adiciona botão para finalizar compra
+function addFinalizePurchaseButton() {
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions && !document.getElementById('finalize-purchase-btn')) {
+        const finalizeBtn = document.createElement('button');
+        finalizeBtn.id = 'finalize-purchase-btn';
+        finalizeBtn.className = 'header-btn success';
+        finalizeBtn.title = 'Finalizar compra';
+        finalizeBtn.innerHTML = '✅';
+        
+        finalizeBtn.addEventListener('click', () => {
+            const purchasedItems = document.querySelectorAll('.list-item.purchased');
+            if (purchasedItems.length === 0) {
+                showNotification('Nenhum item marcado como comprado', 'warning');
+                return;
+            }
+            
+            const confirmation = confirm(`Finalizar compra com ${purchasedItems.length} item(ns)?`);
+            if (confirmation) {
+                // Calcula total da compra (estimativa)
+                let totalSpent = 0;
+                const items = [];
+                
+                purchasedItems.forEach(item => {
+                    const nameEl = item.querySelector('.item-name');
+                    const priceEl = item.querySelector('.item-price');
+                    const qtyEl = item.querySelector('.item-qty');
+                    
+                    if (nameEl) {
+                        const itemData = {
+                            name: nameEl.textContent,
+                            category: 'Geral',
+                            qty: qtyEl ? parseInt(qtyEl.textContent) || 1 : 1,
+                            price: priceEl ? parseFloat(priceEl.textContent.replace('R$', '').replace(',', '.')) || 0 : 0
+                        };
+                        items.push(itemData);
+                        totalSpent += itemData.price * itemData.qty;
+                    }
+                });
+                
+                finalizePurchaseWithType(items, totalSpent);
+            }
+        });
+        
+        headerActions.insertBefore(finalizeBtn, headerActions.firstChild);
+    }
+}
 
 // Salva o nome do supermercado selecionado
 function saveSupermarketName() {
@@ -2574,6 +2890,9 @@ function createReportWithWatermark(originalElement) {
 
 // Inicializa funcionalidades ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
+    // Verifica se é primeira vez e mostra modal de tipo de compra
+    checkFirstTimeUser();
+    
     // Carrega nome do supermercado salvo
     const savedSupermarket = localStorage.getItem('listou-current-supermarket');
     const supermarketInput = document.getElementById('supermarket-name');
@@ -2581,15 +2900,542 @@ document.addEventListener('DOMContentLoaded', () => {
         supermarketInput.value = savedSupermarket;
     }
     
+    // Carrega supermercados cadastrados
+    loadSupermarkets();
+    
     // Atualiza filtro de supermercados
     updateSupermarketFilter();
     
     // Atualiza dados dos relatórios
     updateMinimalAnalytics();
+    
+    // Adiciona botão de finalizar compra
+    addFinalizePurchaseButton();
 });
 
 // TODO: Integrar Capacitor para build Android e acesso à câmera
 // https://capacitorjs.com/docs/apis/camera
+
+// ========================================
+// GERENCIAMENTO DE SUPERMERCADOS
+// ========================================
+
+// Carrega supermercados do banco de dados
+async function loadSupermarkets() {
+    try {
+        supermarkets = await window.dbGetSupermarkets();
+        
+        // Adiciona supermercados padrão se não existir nenhum
+        if (supermarkets.length === 0) {
+            await initDefaultSupermarkets();
+            supermarkets = await window.dbGetSupermarkets();
+        }
+        
+        updateSupermarketSelectors();
+        refreshSupermarketsList();
+        
+        // Carrega supermercado atual salvo
+        const savedSupermarketId = localStorage.getItem('listou-current-supermarket-id');
+        if (savedSupermarketId) {
+            const savedSupermarket = supermarkets.find(s => s.id == savedSupermarketId);
+            if (savedSupermarket) {
+                currentSupermarket = savedSupermarket;
+                updateCurrentSupermarketDisplay();
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar supermercados:', error);
+    }
+}
+
+// Inicializa supermercados padrão
+async function initDefaultSupermarkets() {
+    const defaultSupermarkets = [
+        {
+            name: 'Pão de Açúcar',
+            type: 'supermercado',
+            location: '',
+            notes: 'Rede de supermercados com foco em qualidade'
+        },
+        {
+            name: 'Extra',
+            type: 'hipermercado',
+            location: '',
+            notes: 'Hipermercado com grande variedade de produtos'
+        },
+        {
+            name: 'Carrefour',
+            type: 'hipermercado',
+            location: '',
+            notes: 'Hipermercado francês com bons preços'
+        },
+        {
+            name: 'Atacadão',
+            type: 'atacado',
+            location: '',
+            notes: 'Compras no atacado com preços baixos'
+        },
+        {
+            name: 'Feira Livre',
+            type: 'feira',
+            location: '',
+            notes: 'Produtos frescos e naturais'
+        }
+    ];
+    
+    for (const supermarket of defaultSupermarkets) {
+        try {
+            await window.dbAddSupermarket(supermarket);
+        } catch (error) {
+            console.error('Erro ao adicionar supermercado padrão:', error);
+        }
+    }
+}
+
+// Atualiza os seletores de supermercado
+function updateSupermarketSelectors() {
+    const mainSelect = document.getElementById('main-supermarket-select');
+    const currentSelect = document.getElementById('current-supermarket-select');
+    
+    if (mainSelect) {
+        mainSelect.innerHTML = '<option value="">📍 Selecione o supermercado</option>';
+        supermarkets.forEach(supermarket => {
+            const option = document.createElement('option');
+            option.value = supermarket.id;
+            option.textContent = `${getTypeIcon(supermarket.type)} ${supermarket.name}${supermarket.location ? ' - ' + supermarket.location : ''}`;
+            mainSelect.appendChild(option);
+        });
+        
+        if (currentSupermarket) {
+            mainSelect.value = currentSupermarket.id;
+        }
+    }
+    
+    if (currentSelect) {
+        currentSelect.innerHTML = '<option value="">Selecione um supermercado</option>';
+        supermarkets.forEach(supermarket => {
+            const option = document.createElement('option');
+            option.value = supermarket.id;
+            option.textContent = `${getTypeIcon(supermarket.type)} ${supermarket.name}${supermarket.location ? ' - ' + supermarket.location : ''}`;
+            currentSelect.appendChild(option);
+        });
+        
+        if (currentSupermarket) {
+            currentSelect.value = currentSupermarket.id;
+        }
+    }
+}
+
+// Retorna ícone do tipo de supermercado
+function getTypeIcon(type) {
+    const icons = {
+        'supermercado': '🏪',
+        'hipermercado': '🏬',
+        'atacado': '📦',
+        'mercearia': '🛒',
+        'feira': '🥕',
+        'farmacia': '💊',
+        'conveniencia': '🏪',
+        'outro': '🛍️'
+    };
+    return icons[type] || '🏪';
+}
+
+// Atualiza exibição do supermercado atual
+function updateCurrentSupermarketDisplay() {
+    let badge = document.querySelector('.supermarket-badge');
+    
+    if (currentSupermarket) {
+        if (!badge) {
+            // Cria o badge se não existir
+            badge = document.createElement('span');
+            badge.className = 'supermarket-badge';
+            badge.style.cssText = `
+                display: inline-block;
+                background: var(--color-success);
+                color: white;
+                padding: 0.25rem 0.5rem;
+                border-radius: var(--radius-sm);
+                font-size: 0.75rem;
+                margin-left: 0.5rem;
+                font-weight: 500;
+            `;
+            
+            // Adiciona após o título da seção principal
+            const mainTitle = document.querySelector('#section-main .section-title-container h1');
+            if (mainTitle) {
+                mainTitle.appendChild(badge);
+            }
+        }
+        
+        badge.textContent = `${getTypeIcon(currentSupermarket.type)} ${currentSupermarket.name}`;
+        badge.style.display = 'inline-block';
+    } else if (badge) {
+        badge.style.display = 'none';
+    }
+}
+
+// Refresh da lista de supermercados na seção
+function refreshSupermarketsList() {
+    const grid = document.getElementById('supermarkets-grid');
+    if (!grid) return;
+    
+    if (supermarkets.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏪</div>
+                <h3>Nenhum supermercado cadastrado</h3>
+                <p>Adicione seu primeiro supermercado para começar a comparar preços</p>
+                <button class="btn-primary" onclick="openSupermarketModal()">+ Adicionar Supermercado</button>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = '';
+    supermarkets.forEach(supermarket => {
+        const card = createSupermarketCard(supermarket);
+        grid.appendChild(card);
+    });
+}
+
+// Cria card de supermercado
+function createSupermarketCard(supermarket) {
+    const card = document.createElement('div');
+    card.className = `supermarket-card ${currentSupermarket?.id === supermarket.id ? 'current' : ''}`;
+    card.innerHTML = `
+        <div class="supermarket-header">
+            <h4 class="supermarket-name">${supermarket.name}</h4>
+            <span class="supermarket-type">${supermarket.type}</span>
+        </div>
+        ${supermarket.location ? `<p class="supermarket-location">📍 ${supermarket.location}</p>` : ''}
+        ${supermarket.notes ? `<p class="supermarket-notes">${supermarket.notes}</p>` : ''}
+        <div class="supermarket-actions">
+            <button class="supermarket-btn select" onclick="selectSupermarket(${supermarket.id})">
+                ${currentSupermarket?.id === supermarket.id ? '✓ Selecionado' : 'Selecionar'}
+            </button>
+            <button class="supermarket-btn edit" onclick="editSupermarket(${supermarket.id})">Editar</button>
+            <button class="supermarket-btn delete" onclick="deleteSupermarket(${supermarket.id})">Excluir</button>
+        </div>
+    `;
+    return card;
+}
+
+// Abre modal para adicionar/editar supermercado
+function openSupermarketModal(supermarketId = null) {
+    const modal = document.getElementById('supermarket-modal');
+    const title = document.getElementById('supermarket-modal-title');
+    const form = document.getElementById('supermarket-form');
+    
+    if (!modal || !title || !form) return;
+    
+    const isEdit = supermarketId !== null;
+    title.textContent = isEdit ? 'Editar Supermercado' : 'Adicionar Supermercado';
+    
+    if (isEdit) {
+        const supermarket = supermarkets.find(s => s.id === supermarketId);
+        if (supermarket) {
+            document.getElementById('supermarket-name').value = supermarket.name || '';
+            document.getElementById('supermarket-location').value = supermarket.location || '';
+            document.getElementById('supermarket-type').value = supermarket.type || 'supermercado';
+            document.getElementById('supermarket-notes').value = supermarket.notes || '';
+        }
+        form.dataset.editId = supermarketId;
+    } else {
+        form.reset();
+        delete form.dataset.editId;
+    }
+    
+    modal.classList.add('show');
+}
+
+// Fecha modal de supermercado
+function closeSupermarketModal() {
+    const modal = document.getElementById('supermarket-modal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+// Salva supermercado (adicionar ou editar)
+async function saveSupermarket(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const isEdit = form.dataset.editId;
+    
+    const data = {
+        name: document.getElementById('supermarket-name').value.trim(),
+        location: document.getElementById('supermarket-location').value.trim(),
+        type: document.getElementById('supermarket-type').value,
+        notes: document.getElementById('supermarket-notes').value.trim()
+    };
+    
+    if (!data.name) {
+        alert('Nome do supermercado é obrigatório');
+        return;
+    }
+    
+    try {
+        if (isEdit) {
+            await window.dbUpdateSupermarket(parseInt(isEdit), data);
+            const index = supermarkets.findIndex(s => s.id == isEdit);
+            if (index !== -1) {
+                Object.assign(supermarkets[index], data);
+            }
+        } else {
+            const id = await window.dbAddSupermarket(data);
+            supermarkets.push({ ...data, id });
+        }
+        
+        updateSupermarketSelectors();
+        refreshSupermarketsList();
+        closeSupermarketModal();
+        
+        // Mostra notificação de sucesso
+        if (window.notifications) {
+            window.notifications.show(
+                isEdit ? 'Supermercado atualizado!' : 'Supermercado adicionado!',
+                'success'
+            );
+        }
+    } catch (error) {
+        console.error('Erro ao salvar supermercado:', error);
+        alert('Erro ao salvar supermercado. Tente novamente.');
+    }
+}
+
+// Seleciona supermercado como atual
+function selectSupermarket(supermarketId) {
+    const supermarket = supermarkets.find(s => s.id === supermarketId);
+    if (!supermarket) return;
+    
+    currentSupermarket = supermarket;
+    localStorage.setItem('listou-current-supermarket-id', supermarketId);
+    
+    updateSupermarketSelectors();
+    updateCurrentSupermarketDisplay();
+    refreshSupermarketsList();
+    
+    // Mostra notificação
+    if (window.notifications) {
+        window.notifications.show(`${supermarket.name} selecionado como supermercado atual`, 'success');
+    }
+}
+
+// Edita supermercado
+function editSupermarket(supermarketId) {
+    openSupermarketModal(supermarketId);
+}
+
+// Exclui supermercado
+async function deleteSupermarket(supermarketId) {
+    const supermarket = supermarkets.find(s => s.id === supermarketId);
+    if (!supermarket) return;
+    
+    if (!confirm(`Tem certeza que deseja excluir "${supermarket.name}"?`)) return;
+    
+    try {
+        await window.dbDeleteSupermarket(supermarketId);
+        supermarkets = supermarkets.filter(s => s.id !== supermarketId);
+        
+        // Se era o supermercado atual, remove a seleção
+        if (currentSupermarket?.id === supermarketId) {
+            currentSupermarket = null;
+            localStorage.removeItem('listou-current-supermarket-id');
+        }
+        
+        updateSupermarketSelectors();
+        refreshSupermarketsList();
+        
+        // Mostra notificação
+        if (window.notifications) {
+            window.notifications.show('Supermercado excluído', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir supermercado:', error);
+        alert('Erro ao excluir supermercado. Tente novamente.');
+    }
+}
+
+// Event listeners para supermercados
+document.addEventListener('DOMContentLoaded', () => {
+    // Carrega supermercados
+    loadSupermarkets();
+    
+    // Botão adicionar supermercado
+    const addBtn = document.getElementById('add-supermarket-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => openSupermarketModal());
+    }
+    
+    // Form de supermercado
+    const form = document.getElementById('supermarket-form');
+    if (form) {
+        form.addEventListener('submit', saveSupermarket);
+    }
+    
+    // Seletor principal de supermercado
+    const mainSelect = document.getElementById('main-supermarket-select');
+    if (mainSelect) {
+        mainSelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                selectSupermarket(parseInt(e.target.value));
+            }
+        });
+    }
+    
+    // Seletor atual de supermercado
+    const currentSelect = document.getElementById('current-supermarket-select');
+    if (currentSelect) {
+        currentSelect.addEventListener('change', (e) => {
+            if (e.target.value) {
+                selectSupermarket(parseInt(e.target.value));
+            }
+        });
+    }
+    
+    // Fecha modal ao clicar fora
+    const modal = document.getElementById('supermarket-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeSupermarketModal();
+            }
+        });
+    }
+});
+
+// Função para finalizar compra e gerar dados para relatórios
+async function finalizePurchase() {
+    if (currentItems.length === 0) {
+        alert('❌ Não há itens na lista para finalizar a compra!');
+        return;
+    }
+
+    // Verifica se há itens comprados (marcados como bought)
+    const boughtItems = currentItems.filter(item => item.bought);
+    if (boughtItems.length === 0) {
+        alert('❌ Nenhum item foi marcado como comprado!\n\nMarque os itens desejados antes de finalizar a compra.');
+        return;
+    }
+
+    // Confirmação antes de finalizar
+    const confirmProceed = confirm(
+        `🛒 Finalizar compra com ${boughtItems.length} item(ns) marcado(s)?\n\n` +
+        'Os itens comprados serão removidos da lista.'
+    );
+    if (!confirmProceed) return;
+
+    // Calcula totais apenas dos itens marcados como comprados
+    const completedItemsAfter = currentItems.filter(item => item.bought);
+    const totalItems = completedItemsAfter.length;
+    const totalValue = completedItemsAfter.reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        const qty = parseFloat(item.qty) || 1;
+        return sum + (price * qty);
+    }, 0);
+
+    // Pega o supermercado selecionado
+    const supermarketSelect = document.getElementById('main-supermarket-select');
+    const selectedSupermarket = supermarketSelect ? supermarketSelect.value : '';
+    
+    if (!selectedSupermarket) {
+        const confirmWithoutSupermarket = confirm(
+            '⚠️ Nenhum supermercado foi selecionado.\n\n' +
+            'Para uma análise mais precisa nos relatórios, é recomendado selecionar o supermercado.\n\n' +
+            'Deseja continuar mesmo assim?'
+        );
+        if (!confirmWithoutSupermarket) return;
+    }
+
+    // Registra a compra no sistema de analytics apenas com dados do usuário
+    if (analytics) {
+        const purchaseData = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            items: completedItemsAfter.map(item => ({
+                name: item.name,
+                category: item.category || 'outros',
+                quantity: parseFloat(item.qty) || 1,
+                unitPrice: parseFloat(item.price) || 0,
+                totalPrice: (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1)
+            })),
+            totalSpent: totalValue,
+            supermarket: selectedSupermarket,
+            itemCount: totalItems
+        };
+
+        // Salva apenas dados do usuário - sem dados externos
+        analytics.recordPurchase(
+            purchaseData.items,
+            purchaseData.totalSpent,
+            null, // location
+            purchaseData.supermarket
+        );
+    }
+
+    // Salva no histórico local
+    const purchaseHistory = JSON.parse(localStorage.getItem('listou-purchase-history') || '[]');
+    const newPurchase = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        items: completedItemsAfter.map(item => ({
+            name: item.name,
+            category: item.category || 'outros',
+            quantity: parseFloat(item.qty) || 1,
+            unitPrice: parseFloat(item.price) || 0,
+            totalPrice: (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1)
+        })),
+        totalSpent: totalValue,
+        supermarket: selectedSupermarket || 'Não informado',
+        itemCount: totalItems
+    };
+    
+    purchaseHistory.unshift(newPurchase);
+    
+    // Mantém apenas os últimos 50 registros
+    if (purchaseHistory.length > 50) {
+        purchaseHistory.splice(50);
+    }
+    
+    localStorage.setItem('listou-purchase-history', JSON.stringify(purchaseHistory));
+
+    // Remove itens comprados da lista atual
+    for (const item of completedItemsAfter) {
+        await dbDeleteItem(item.id);
+    }
+
+    // Atualiza a interface
+    await refreshList();
+
+    // Mostra confirmação e navega para relatórios
+    const itemNames = completedItemsAfter.map(item => `• ${item.name}`).join('\n');
+    const message = `✅ Compra finalizada com sucesso!\n\n` +
+                   `📊 Itens comprados (${totalItems}):\n${itemNames}\n\n` +
+                   `💰 Valor total: R$ ${totalValue.toFixed(2)}\n` +
+                   `🏪 Supermercado: ${selectedSupermarket || 'Não informado'}\n\n` +
+                   `Os dados foram salvos para análise nos relatórios.`;
+    
+    alert(message);
+
+    // Navega automaticamente para a aba de relatórios
+    switchSection('analytics');
+    closeSidebar();
+    
+    // Atualiza os relatórios com os novos dados
+    if (typeof updateAnalyticsData === 'function') {
+        updateAnalyticsData();
+    }
+}
+
+// Torna funções globais para uso nos elementos HTML
+window.openSupermarketModal = openSupermarketModal;
+window.closeSupermarketModal = closeSupermarketModal;
+window.selectSupermarket = selectSupermarket;
+window.editSupermarket = editSupermarket;
+window.deleteSupermarket = deleteSupermarket;
+window.finalizePurchase = finalizePurchase;
 
 
 // Aplicar tema claro fixo

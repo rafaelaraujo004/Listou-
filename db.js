@@ -3,9 +3,10 @@
 // Futuro: merge de listas, histórico, sync, etc.
 
 const DB_NAME = 'listou-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_ITEMS = 'items';
 const STORE_TEMPLATES = 'templates';
+const STORE_SUPERMARKETS = 'supermarkets';
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -17,6 +18,9 @@ function openDB() {
             }
             if (!db.objectStoreNames.contains(STORE_TEMPLATES)) {
                 db.createObjectStore(STORE_TEMPLATES, { keyPath: 'name' });
+            }
+            if (!db.objectStoreNames.contains(STORE_SUPERMARKETS)) {
+                db.createObjectStore(STORE_SUPERMARKETS, { keyPath: 'id', autoIncrement: true });
             }
         };
         req.onsuccess = () => resolve(req.result);
@@ -62,6 +66,7 @@ export async function dbUpdateItem(id, update) {
             // Atualizações diretas
             if (update.qty !== undefined) item.qty = update.qty;
             if (update.bought !== undefined) item.bought = update.bought;
+            if (update.purchased !== undefined) item.purchased = update.purchased;
             if (update.price !== undefined) item.price = update.price;
             if (update.name !== undefined) item.name = update.name;
             if (update.category !== undefined) item.category = update.category;
@@ -70,6 +75,16 @@ export async function dbUpdateItem(id, update) {
         };
         tx.oncomplete = resolve;
         tx.onerror = reject;
+    });
+}
+
+export async function dbGetItemById(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_ITEMS, 'readonly');
+        const req = tx.objectStore(STORE_ITEMS).get(Number(id));
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = reject;
     });
 }
 
@@ -131,6 +146,86 @@ export async function dbLoadTemplate(name) {
         }
     };
 })();
+
+// Supermercados
+export async function dbAddSupermarket(supermarket) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_SUPERMARKETS, 'readwrite');
+        const addReq = tx.objectStore(STORE_SUPERMARKETS).add({
+            ...supermarket,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+        addReq.onsuccess = () => resolve(addReq.result);
+        tx.onerror = reject;
+    });
+}
+
+export async function dbGetSupermarkets() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_SUPERMARKETS, 'readonly');
+        const req = tx.objectStore(STORE_SUPERMARKETS).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = reject;
+    });
+}
+
+export async function dbUpdateSupermarket(id, update) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_SUPERMARKETS, 'readwrite');
+        const store = tx.objectStore(STORE_SUPERMARKETS);
+        const getReq = store.get(Number(id));
+        getReq.onsuccess = () => {
+            const supermarket = getReq.result;
+            if (!supermarket) return resolve();
+            
+            Object.assign(supermarket, update, {
+                updatedAt: new Date().toISOString()
+            });
+            
+            store.put(supermarket);
+        };
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+}
+
+export async function dbDeleteSupermarket(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_SUPERMARKETS, 'readwrite');
+        tx.objectStore(STORE_SUPERMARKETS).delete(Number(id));
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+}
+
+export async function dbGetSupermarketById(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_SUPERMARKETS, 'readonly');
+        const req = tx.objectStore(STORE_SUPERMARKETS).get(Number(id));
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = reject;
+    });
+}
+
+// Exporta funções para uso global (compatibilidade com app.js não-módulo)
+window.dbAddItem = dbAddItem;
+window.dbGetItems = dbGetItems;
+window.dbUpdateItem = dbUpdateItem;
+window.dbDeleteItem = dbDeleteItem;
+window.dbGetItemById = dbGetItemById;
+window.dbGetTemplates = dbGetTemplates;
+window.dbLoadTemplate = dbLoadTemplate;
+window.dbAddSupermarket = dbAddSupermarket;
+window.dbGetSupermarkets = dbGetSupermarkets;
+window.dbUpdateSupermarket = dbUpdateSupermarket;
+window.dbDeleteSupermarket = dbDeleteSupermarket;
+window.dbGetSupermarketById = dbGetSupermarketById;
 
 // TODO: Função de merge de listas (atualizar preços/quantidades)
 // TODO: Sincronização futura (premium)

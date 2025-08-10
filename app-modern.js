@@ -317,12 +317,6 @@ function setupQuickActions(db) {
         clearBtn.addEventListener('click', () => clearAllItems(db));
     }
     
-    // Botão de marcar todos
-    const selectAllBtn = document.getElementById('select-all-btn');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', () => markAllAsCompleted(db));
-    }
-    
     // Botão de exportar
     const exportBtn = document.getElementById('export-list-btn');
     if (exportBtn) {
@@ -495,12 +489,6 @@ function setupKeyboardShortcuts() {
             document.getElementById('item-input')?.focus();
         }
         
-        // Ctrl/Cmd + A: Marcar todos
-        if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.target.matches('input')) {
-            e.preventDefault();
-            markAllAsCompleted();
-        }
-        
         // Ctrl/Cmd + K: Limpar lista
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
@@ -519,7 +507,6 @@ function setupKeyboardShortcuts() {
 window.ListouApp = {
     addItem: addItemFromInput,
     clearList: clearAllItems,
-    markAll: markAllAsCompleted,
     shareList,
     exportList
 };

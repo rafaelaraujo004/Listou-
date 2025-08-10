@@ -6,7 +6,14 @@
     <title>Listou - Lista de Compras</title>
     <meta name="theme-color" content="#ffffff">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css">
+                        <div class="header-actions">
+                        <button id="export-png-report-btn" class="header-btn" title="Exportar como Imagem PNG">
+                            🖼️ PNG
+                        </button>
+                        <button id="export-pdf-report-btn" class="header-btn" title="Exportar como PDF">
+                            📄 PDF
+                        </button>
+                    </div>stylesheet" href="styles.css">
     <!-- Biblioteca para leitura de QRCode -->
     <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
@@ -45,6 +52,10 @@
             <a href="#" class="nav-item" data-section="history">
                 <span class="nav-icon">📅</span>
                 <span class="nav-text">Histórico</span>
+            </a>
+            <a href="#" class="nav-item" data-section="supermarkets">
+                <span class="nav-icon">🏪</span>
+                <span class="nav-text">Supermercados</span>
             </a>
             <a href="#" class="nav-item" data-section="settings">
                 <span class="nav-icon">⚙️</span>
@@ -96,6 +107,50 @@
         </div>
     </aside>
 
+    <!-- Modal de Seleção de Tipo de Compra -->
+    <div id="purchase-type-modal" class="purchase-type-modal hidden">
+        <div class="purchase-type-modal-content">
+            <div class="purchase-type-header">
+                <h2>🛒 Tipo de Compra</h2>
+                <p>Escolha como deseja usar sua lista de compras:</p>
+            </div>
+            
+            <div class="purchase-type-options">
+                <button class="purchase-type-option" data-type="controlled">
+                    <div class="option-icon">📊</div>
+                    <div class="option-content">
+                        <h3>Compra Controlada</h3>
+                        <p>Os dados serão utilizados para relatórios, comparações e indicadores de economia</p>
+                        <ul class="option-benefits">
+                            <li>✅ Gera relatórios detalhados</li>
+                            <li>✅ Comparação entre supermercados</li>
+                            <li>✅ Análise de economia</li>
+                            <li>✅ Histórico de compras</li>
+                        </ul>
+                    </div>
+                </button>
+                
+                <button class="purchase-type-option" data-type="casual">
+                    <div class="option-icon">🛍️</div>
+                    <div class="option-content">
+                        <h3>Compra Avulsa</h3>
+                        <p>Lista simples sem gerar dados para relatórios ou análises</p>
+                        <ul class="option-benefits">
+                            <li>✅ Lista básica e rápida</li>
+                            <li>✅ Sem coleta de dados</li>
+                            <li>✅ Privacidade total</li>
+                            <li>❌ Sem relatórios</li>
+                        </ul>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="purchase-type-footer">
+                <small>💡 Você pode mudar o tipo de compra a qualquer momento nas configurações</small>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main id="main-content" class="main-content">
         <!-- Main Section -->
@@ -110,15 +165,17 @@
                     <span class="main-app-name">Listou</span>
                 </div>
                 <div class="section-title-container">
-                    <h1>Lista de Compras</h1>
-                    <div class="supermarket-input-container">
-                        <input type="text" id="supermarket-name" placeholder="📍 Nome do supermercado" 
-                               class="supermarket-input" maxlength="50">
-                        <small class="supermarket-hint">Para análises comparativas de preços</small>
+                    <div class="title-with-badge" style="display: flex; flex-direction: column; align-items: center;">
+                        <img src="logo.svg" alt="Logo Listou" class="main-logo" width="64" height="64" style="margin-bottom: 8px;" loading="lazy">
+                        <h1>Lista de Compras</h1>
+                        <span id="purchase-type-badge" class="purchase-type-badge">📊 Controlada</span>
+                        <button id="change-purchase-type-btn" class="header-btn" title="Alterar tipo de compra">🔄</button>
                     </div>
-                    <div class="header-actions">
-                        <button id="clear-all-btn" class="header-btn" title="Limpar lista">🗑️</button>
-                        <button id="select-all-btn" class="header-btn" title="Selecionar todos">☑️</button>
+                    <div class="supermarket-input-container">
+                        <select id="main-supermarket-select" class="supermarket-select" title="Selecione o supermercado">
+                            <option value="">📍 Selecione o supermercado</option>
+                        </select>
+                        <small class="supermarket-hint">Para análises comparativas de preços</small>
                     </div>
                 </div>
             </header>
@@ -189,7 +246,15 @@
             </section>
 
             <section id="current-list-section" class="current-list-section">
-                <h3>🛒 Minha Lista de Compras</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>🛒 Minha Lista de Compras</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="finish-purchase-btn" class="header-btn primary" title="Finalizar compra e gerar relatório" style="background-color: #4CAF50; color: white;">
+                            ✅ Finalizar Compra
+                        </button>
+                        <button id="clear-all-btn" class="header-btn" title="Limpar lista">🗑️</button>
+                    </div>
+                </div>
                 <ul id="shopping-list"></ul>
             </section>
         </section>
@@ -273,18 +338,18 @@
             <div class="analytics-grid-minimal">
                 <!-- Card Principal de Economia -->
                 <div class="analytics-card primary-card">
-                    <h3>💰 Economia Total</h3>
+                    <h3>💰 Total de Gastos</h3>
                     <div class="savings-summary">
-                        <span class="savings-amount" id="total-savings">R$ 145,20</span>
-                        <span class="savings-desc">vs. média do mercado</span>
+                        <span class="savings-amount" id="total-savings">R$ 0,00</span>
+                        <span class="savings-desc">Nenhuma compra registrada</span>
                         <div class="savings-comparison">
                             <span class="comparison-item">
-                                <span class="comparison-label">Seu gasto mensal:</span>
-                                <span class="comparison-value" id="monthly-spending">R$ 485,30</span>
+                                <span class="comparison-label">Seu gasto no período:</span>
+                                <span class="comparison-value" id="monthly-spending">R$ 0,00</span>
                             </span>
                             <span class="comparison-item">
-                                <span class="comparison-label">Média brasileira:</span>
-                                <span class="comparison-value">R$ 630,50</span>
+                                <span class="comparison-label">Finalize compras para ver relatórios</span>
+                                <span class="comparison-value">--</span>
                             </span>
                         </div>
                     </div>
@@ -294,26 +359,7 @@
                 <div class="analytics-card supermarket-comparison">
                     <h3>� Ranking de Preços</h3>
                     <div id="supermarket-ranking" class="ranking-container">
-                        <div class="ranking-item best">
-                            <span class="rank-position">1º</span>
-                            <span class="supermarket-name">Atacadão</span>
-                            <span class="price-diff">-R$ 45,20</span>
-                        </div>
-                        <div class="ranking-item good">
-                            <span class="rank-position">2º</span>
-                            <span class="supermarket-name">Walmart</span>
-                            <span class="price-diff">-R$ 32,10</span>
-                        </div>
-                        <div class="ranking-item average">
-                            <span class="rank-position">3º</span>
-                            <span class="supermarket-name">Extra</span>
-                            <span class="price-diff">-R$ 15,80</span>
-                        </div>
-                        <div class="ranking-item expensive">
-                            <span class="rank-position">4º</span>
-                            <span class="supermarket-name">Pão de Açúcar</span>
-                            <span class="price-diff">+R$ 28,90</span>
-                        </div>
+                        <div class="no-data">Nenhuma compra com supermercado informado</div>
                     </div>
                 </div>
 
@@ -406,6 +452,76 @@
                         <h4>Produtos de Limpeza</h4>
                         <p>6 itens • R$ 42,80 • Drogasil</p>
                         <span class="history-status completed">Concluída</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supermarkets Section -->
+        <section id="section-supermarkets" class="content-section">
+            <header class="section-header">
+                <h1>🏪 Supermercados</h1>
+                <button id="add-supermarket-btn" class="header-btn primary" title="Adicionar supermercado">+ Adicionar</button>
+            </header>
+
+            <div class="supermarkets-container">
+                <!-- Seletor de supermercado atual -->
+                <div class="current-supermarket">
+                    <h3>Supermercado Atual</h3>
+                    <select id="current-supermarket-select" class="supermarket-selector">
+                        <option value="">Selecione um supermercado</option>
+                    </select>
+                    <p class="supermarket-info">Selecione onde você está fazendo suas compras</p>
+                </div>
+
+                <!-- Lista de supermercados cadastrados -->
+                <div class="supermarkets-list">
+                    <h3>Supermercados Cadastrados</h3>
+                    <div id="supermarkets-grid" class="supermarkets-grid">
+                        <!-- Os supermercados serão carregados dinamicamente aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para adicionar/editar supermercado -->
+            <div id="supermarket-modal" class="modal supermarket-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="supermarket-modal-title">Adicionar Supermercado</h3>
+                        <button class="modal-close" onclick="closeSupermarketModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="supermarket-form">
+                            <div class="form-group">
+                                <label for="supermarket-name">Nome do Supermercado*</label>
+                                <input type="text" id="supermarket-name" required placeholder="Ex: Pão de Açúcar">
+                            </div>
+                            <div class="form-group">
+                                <label for="supermarket-location">Localização</label>
+                                <input type="text" id="supermarket-location" placeholder="Ex: Shopping Center Norte">
+                            </div>
+                            <div class="form-group">
+                                <label for="supermarket-type">Tipo</label>
+                                <select id="supermarket-type">
+                                    <option value="supermercado">Supermercado</option>
+                                    <option value="hipermercado">Hipermercado</option>
+                                    <option value="atacado">Atacado</option>
+                                    <option value="mercearia">Mercearia</option>
+                                    <option value="feira">Feira</option>
+                                    <option value="farmacia">Farmácia</option>
+                                    <option value="conveniencia">Conveniência</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="supermarket-notes">Observações</label>
+                                <textarea id="supermarket-notes" placeholder="Ex: Melhores preços em produtos de limpeza"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeSupermarketModal()">Cancelar</button>
+                        <button type="submit" form="supermarket-form" class="btn-primary">Salvar</button>
                     </div>
                 </div>
             </div>
