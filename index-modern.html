@@ -7,9 +7,9 @@
     
     <!-- Meta tags for PWA -->
     <meta name="description" content="Lista de compras simples, rápida e eficiente. Organize suas compras facilmente.">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0a0b0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Listou">
     
     <!-- Manifest and Icons -->
@@ -19,7 +19,6 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="styles-modern.css">
     <link rel="stylesheet" href="styles.css">
     
     <!-- Preload important resources -->
@@ -41,19 +40,13 @@
 
     <!-- Header with modern design -->
     <header class="app-header">
-        <div class="header-content">
-            <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Abrir menu lateral">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-            
-            <div class="header-title">
-                <h1>Listou</h1>
-                <span class="header-subtitle">Sua Lista</span>
+        <div class="header-content" style="flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;">
+            <img src="icon-192.png" alt="App Icon" style="width:72px;height:72px;display:block;margin:0 auto 0.5rem auto;box-shadow:0 4px 16px #0002;border-radius:16px;background:#fff;" />
+            <div class="header-title" style="text-align:center;">
+                <h1 style="margin-bottom:0.2em;">Listou</h1>
+                <span class="header-subtitle">Lista de Compras</span>
             </div>
-            
-            <div class="header-actions">
+            <div class="header-actions" style="margin-top:0.5rem;">
                 <!-- Botão de voz removido -->
                 <button id="share-list-btn" class="header-btn" title="Compartilhar lista">
                     📤
@@ -99,6 +92,9 @@
         <div class="sidebar-quick-actions">
             <button id="clear-all-btn" class="quick-action-btn danger">
                 🗑️ Limpar Lista
+            </button>
+            <button id="select-all-btn" class="quick-action-btn success">
+                ✅ Marcar Todos
             </button>
             <button id="export-list-btn" class="quick-action-btn">
                 📤 Exportar
@@ -205,7 +201,6 @@
                         <option value="quarter">Últimos 3 meses</option>
                         <option value="year">Último ano</option>
                     </select>
-                    <button id="clear-history-btn" class="header-btn danger" title="Limpar histórico">🗑️ Limpar</button>
                 </div>
             </div>
 

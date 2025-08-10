@@ -1111,3 +1111,195 @@ export class AnalyticsManager {
         console.log('Todos os dados analíticos foram limpos');
     }
 }
+
+// Funções auxiliares para relatórios baseados apenas em dados do usuário
+function updateAnalyticsData() {
+    const purchases = JSON.parse(localStorage.getItem('completedPurchases') || '[]');
+    
+    if (purchases.length === 0) {
+        // Se não há compras, mostrar zeros
+        const totalSpendingEl = document.getElementById('total-spending');
+        const monthlySpendingEl = document.getElementById('monthly-spending');
+        const avgSpendingEl = document.getElementById('avg-spending');
+        const purchaseCountEl = document.getElementById('purchase-count');
+        
+        if (totalSpendingEl) totalSpendingEl.textContent = 'R$ 0,00';
+        if (monthlySpendingEl) monthlySpendingEl.textContent = 'R$ 0,00';
+        if (avgSpendingEl) avgSpendingEl.textContent = 'R$ 0,00';
+        if (purchaseCountEl) purchaseCountEl.textContent = '0';
+        
+        // Limpar rankings
+        updateSupermarketRanking([]);
+        updateTopItems([]);
+        updateBestPrices([]);
+        return;
+    }
+    
+    // Cálculos baseados apenas em dados reais do usuário
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const totalSpent = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
+    const monthlyPurchases = purchases.filter(purchase => {
+        const purchaseDate = new Date(purchase.date);
+        return purchaseDate.getMonth() === currentMonth && purchaseDate.getFullYear() === currentYear;
+    });
+    const monthlySpent = monthlyPurchases.reduce((sum, purchase) => sum + purchase.total, 0);
+    const avgSpent = purchases.length > 0 ? totalSpent / purchases.length : 0;
+    
+    // Atualizar interface
+    const totalSpendingEl = document.getElementById('total-spending');
+    const monthlySpendingEl = document.getElementById('monthly-spending');
+    const avgSpendingEl = document.getElementById('avg-spending');
+    const purchaseCountEl = document.getElementById('purchase-count');
+    
+    if (totalSpendingEl) totalSpendingEl.textContent = formatCurrency(totalSpent);
+    if (monthlySpendingEl) monthlySpendingEl.textContent = formatCurrency(monthlySpent);
+    if (avgSpendingEl) avgSpendingEl.textContent = formatCurrency(avgSpent);
+    if (purchaseCountEl) purchaseCountEl.textContent = purchases.length.toString();
+    
+    // Atualizar rankings baseados em dados reais
+    updateSupermarketRanking(purchases);
+    updateTopItems(purchases);
+    updateBestPrices(purchases);
+}
+
+function updateSupermarketRanking(purchases) {
+    const supermarketStats = {};
+    
+    purchases.forEach(purchase => {
+        const supermarket = purchase.supermarket || 'Não informado';
+        if (!supermarketStats[supermarket]) {
+            supermarketStats[supermarket] = {
+                totalSpent: 0,
+                visits: 0,
+                totalItems: 0
+            };
+        }
+        supermarketStats[supermarket].totalSpent += purchase.total;
+        supermarketStats[supermarket].visits += 1;
+        supermarketStats[supermarket].totalItems += purchase.items ? purchase.items.length : 0;
+    });
+    
+    const ranking = Object.entries(supermarketStats)
+        .map(([name, stats]) => ({
+            name,
+            ...stats,
+            avgSpent: stats.totalSpent / stats.visits
+        }))
+        .sort((a, b) => b.totalSpent - a.totalSpent);
+    
+    const rankingContainer = document.getElementById('supermarket-ranking');
+    if (rankingContainer) {
+        if (ranking.length === 0) {
+            rankingContainer.innerHTML = '<p style="text-align: center; color: #666;">Nenhum dado disponível</p>';
+        } else {
+            rankingContainer.innerHTML = ranking.slice(0, 5).map((item, index) => `
+                <div class="metric-item">
+                    <span>${index + 1}º ${item.name}</span>
+                    <span>${formatCurrency(item.totalSpent)}</span>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function updateTopItems(purchases) {
+    const itemStats = {};
+    
+    purchases.forEach(purchase => {
+        if (purchase.items) {
+            purchase.items.forEach(item => {
+                const itemName = item.name || item.text || 'Item sem nome';
+                if (!itemStats[itemName]) {
+                    itemStats[itemName] = {
+                        count: 0,
+                        totalValue: 0
+                    };
+                }
+                itemStats[itemName].count += 1;
+                itemStats[itemName].totalValue += item.price || 0;
+            });
+        }
+    });
+    
+    const topItems = Object.entries(itemStats)
+        .map(([name, stats]) => ({ name, ...stats }))
+        .sort((a, b) => b.count - a.count);
+    
+    const topItemsList = document.getElementById('top-items-list');
+    if (topItemsList) {
+        if (topItems.length === 0) {
+            topItemsList.innerHTML = '<p style="text-align: center; color: #666;">Nenhum dado disponível</p>';
+        } else {
+            topItemsList.innerHTML = topItems.slice(0, 5).map(item => `
+                <div class="metric-item">
+                    <span>${item.name}</span>
+                    <span>${item.count} compras</span>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function updateBestPrices(purchases) {
+    const itemPrices = {};
+    
+    purchases.forEach(purchase => {
+        if (purchase.items) {
+            purchase.items.forEach(item => {
+                const itemName = item.name || item.text || 'Item sem nome';
+                if (item.price && item.price > 0) {
+                    if (!itemPrices[itemName]) {
+                        itemPrices[itemName] = [];
+                    }
+                    itemPrices[itemName].push({
+                        price: item.price,
+                        supermarket: purchase.supermarket || 'Não informado',
+                        date: purchase.date
+                    });
+                }
+            });
+        }
+    });
+    
+    const bestPrices = Object.entries(itemPrices)
+        .map(([name, prices]) => {
+            const sortedPrices = prices.sort((a, b) => a.price - b.price);
+            const bestPrice = sortedPrices[0];
+            const worstPrice = sortedPrices[sortedPrices.length - 1];
+            return {
+                name,
+                bestPrice: bestPrice.price,
+                bestSupermarket: bestPrice.supermarket,
+                savings: worstPrice.price - bestPrice.price
+            };
+        })
+        .filter(item => item.savings > 0)
+        .sort((a, b) => b.savings - a.savings);
+    
+    const bestPricesContainer = document.getElementById('best-prices-items');
+    if (bestPricesContainer) {
+        if (bestPrices.length === 0) {
+            bestPricesContainer.innerHTML = '<p style="text-align: center; color: #666;">Nenhum dado disponível</p>';
+        } else {
+            bestPricesContainer.innerHTML = bestPrices.slice(0, 5).map(item => `
+                <div class="deal-item">
+                    <span class="item-emoji">🛒</span>
+                    <div class="item-details">
+                        <span class="item-name">${item.name}</span>
+                        <span class="best-price">${formatCurrency(item.bestPrice)} <small>no ${item.bestSupermarket}</small></span>
+                    </div>
+                    <span class="savings">-${formatCurrency(item.savings)}</span>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}

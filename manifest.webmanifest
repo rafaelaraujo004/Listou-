@@ -1,21 +1,115 @@
 {
-    "name": "Listou",
+    "name": "Listou - Lista de Compras Inteligente",
     "short_name": "Listou",
-    "description": "Lista de compras simples, rápida e pronta para virar app.",
+    "description": "Lista de compras inteligente com controle de gastos, comparação de preços e análises personalizadas. Organize suas compras de forma simples e eficiente.",
     "start_url": ".",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#121316",
-    "theme_color": "#1e1f22",
+    "orientation": "portrait-primary",
+    "background_color": "#0a0b0d",
+    "theme_color": "#667eea",
+    "lang": "pt-BR",
+    "categories": ["shopping", "productivity", "lifestyle"],
+    "screenshots": [
+        {
+            "src": "screenshot-mobile.png",
+            "sizes": "320x640",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "screenshot-desktop.png", 
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
     "icons": [
+        {
+            "src": "icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
         {
             "src": "icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nova Lista",
+            "short_name": "Nova Lista",
+            "description": "Criar uma nova lista de compras",
+            "url": "/?action=new-list",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Templates",
+            "short_name": "Templates",
+            "description": "Usar templates pré-definidos",
+            "url": "/?action=templates",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Relatórios",
+            "short_name": "Relatórios",
+            "description": "Ver relatórios de gastos",
+            "url": "/?action=analytics",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
         }
     ]
 }
