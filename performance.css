@@ -1,0 +1,244 @@
+/* ===== MELHORIAS DE PERFORMANCE E UX ===== */
+
+/* Adicionado no final do styles.css */
+
+/* Otimizações para performance */
+* {
+    box-sizing: border-box;
+}
+
+/* Melhor suporte a gestos touch */
+.item-actions {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Pull-to-refresh disable (evita conflito com gestos) */
+body {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Animações suaves para interações */
+.list-item {
+    transform: translateZ(0); /* Force hardware acceleration */
+    will-change: transform;
+}
+
+.list-item.swipe-left {
+    transform: translateX(-80px);
+    transition: transform 0.3s ease-out;
+}
+
+.list-item.swipe-right {
+    transform: translateX(80px);
+    transition: transform 0.3s ease-out;
+}
+
+/* Feedback visual para touch */
+.btn-touch-feedback {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-touch-feedback::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.btn-touch-feedback:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Otimização para conexões lentas */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Tema escuro removido - usando apenas tema claro */
+
+/* Melhor acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus visible melhorado */
+*:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Otimizações para notch/safe area */
+@supports (padding: max(0px)) {
+    .main-content {
+        padding-left: max(2rem, env(safe-area-inset-left));
+        padding-right: max(2rem, env(safe-area-inset-right));
+        padding-top: max(80px, env(safe-area-inset-top) + 60px);
+        padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    }
+    
+    .sidebar {
+        padding-top: max(0px, env(safe-area-inset-top));
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Indicador de conexão offline */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ff6b6b;
+    color: white;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    z-index: 9999;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+}
+
+.offline-indicator.show {
+    transform: translateY(0);
+}
+
+/* Indicador de atualização disponível */
+.update-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.update-indicator.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Melhor suporte para telas pequenas */
+@media (max-height: 600px) {
+    .main-content {
+        padding-top: 60px;
+    }
+    
+    .section-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .sidebar-header {
+        padding: 1rem;
+    }
+}
+
+/* Suporte a landscape em mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .main-content {
+        padding: 60px 1.5rem 1rem;
+    }
+}
+
+/* Otimizações específicas para iOS Safari */
+@supports (-webkit-touch-callout: none) {
+    .sidebar-toggle {
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    input, textarea, select {
+        -webkit-appearance: none;
+        border-radius: 0;
+    }
+    
+    /* Fix para keyboard que empurra o viewport */
+    .main-content {
+        height: 100vh;
+        height: -webkit-fill-available;
+    }
+}
+
+/* Animação de entrada para novos itens */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.list-item.new-item {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+/* Melhor feedback para ações de swipe */
+.swipe-action-feedback {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.swipe-action-feedback.left {
+    left: 0;
+    background: var(--color-danger);
+}
+
+.swipe-action-feedback.right {
+    right: 0;
+    background: var(--color-success);
+}
+
+.swipe-action-feedback.show {
+    opacity: 1;
+}

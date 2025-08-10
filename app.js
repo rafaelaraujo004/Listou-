@@ -277,6 +277,11 @@ function toggleSidebar() {
     sidebar.classList.remove('closed');
     sidebarOverlay.classList.toggle('show');
     document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+    
+    // Esconde o botão quando a sidebar está aberta
+    if (sidebar.classList.contains('open')) {
+        sidebarToggle.classList.add('hidden');
+    }
 }
 
 function closeSidebar() {
@@ -285,7 +290,13 @@ function closeSidebar() {
     sidebar.classList.add('closed');
     sidebarOverlay.classList.remove('show');
     document.body.style.overflow = '';
+    
+    // Mostra o botão quando a sidebar é fechada
+    sidebarToggle.classList.remove('hidden');
 }
+
+// Torna a função global para ser acessível de outros arquivos
+window.closeSidebar = closeSidebar;
 
 function switchSection(sectionId) {
     // Remove active de todas as seções e nav items
@@ -359,6 +370,35 @@ if (analyticsPeriodSelect) {
     });
 }
 
+// Event listeners para novos botões de relatórios comparativos
+const exportPngReportBtn = document.getElementById('export-png-report-btn');
+if (exportPngReportBtn) {
+    exportPngReportBtn.addEventListener('click', exportReportAsPNG);
+}
+
+const exportPdfReportBtn = document.getElementById('export-pdf-report-btn');
+if (exportPdfReportBtn) {
+    exportPdfReportBtn.addEventListener('click', exportReportAsPDF);
+}
+
+const showImprovementTipsBtn = document.getElementById('show-improvement-tips-btn');
+if (showImprovementTipsBtn) {
+    showImprovementTipsBtn.addEventListener('click', showImprovementTips);
+}
+
+// Event listener para filtro de supermercado
+const supermarketFilter = document.getElementById('supermarket-filter');
+if (supermarketFilter) {
+    supermarketFilter.addEventListener('change', filterReportsBySupermarket);
+}
+
+// Event listener para campo de supermercado
+const supermarketInput = document.getElementById('supermarket-name');
+if (supermarketInput) {
+    supermarketInput.addEventListener('blur', saveSupermarketName);
+    supermarketInput.addEventListener('change', saveSupermarketName);
+}
+
 // Event delegation para criar novo template
 document.body.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'create-template-btn') createNewTemplate();
@@ -372,6 +412,21 @@ if (clearHistoryBtn) {
         if (confirmation) {
             if (intelligence) {
                 intelligence.clearPurchaseHistory();
+                
+                // Limpar também os dados analíticos relacionados
+                if (analytics && typeof analytics.clearAllPurchaseData === 'function') {
+                    analytics.clearAllPurchaseData();
+                }
+                
+                // Limpar visualmente a lista de histórico na interface
+                const historyList = document.getElementById('history-list');
+                if (historyList) {
+                    historyList.innerHTML = '<div class="no-data">Nenhum histórico de compras encontrado</div>';
+                }
+                
+                // Atualizar os dados analíticos também
+                updateAnalyticsData();
+                
                 alert('Histórico de compras limpo com sucesso!');
             } else {
                 console.error('Sistema de inteligência não inicializado');
@@ -400,12 +455,6 @@ try {
 } catch (error) {
     console.error('Erro ao inicializar sistemas:', error);
 }
-
-// Elementos da IA
-const aiVoiceInput = document.getElementById('ai-voice-input');
-const aiVoiceBtn = document.getElementById('ai-voice-btn');
-const aiSendBtn = document.getElementById('ai-send-btn');
-// const aiResponse = document.getElementById('ai-response');
 
 let currentItems = [];
 let filteredItems = [];
@@ -451,8 +500,8 @@ function renderList(items = filteredItems) {
         li.className = 'shopping-item' + (item.bought ? ' item-bought' : '');
         li.innerHTML = `
             <div class="item-info">
-                <div class="item-name" data-id="${item.id}" style="cursor: pointer;" title="Clique para marcar como comprado">
-                    ${categoryIcon} ${item.name}
+                <div class="item-name" data-id="${item.id}" style="cursor: pointer;" title="${item.bought ? 'Clique para desmarcar como comprado' : 'Clique para marcar como comprado (tachar)'}">
+                    ${categoryIcon} ${item.name.toUpperCase()}
                     <span class="item-favorite ${isFavorite ? 'active' : ''}" data-id="${item.id}" title="Favoritar">
                         ${isFavorite ? '⭐' : '☆'}
                     </span>
@@ -460,7 +509,7 @@ function renderList(items = filteredItems) {
                 <div class="item-details">
                     <span class="item-category">${item.category || 'outros'}</span>
                 </div>
-                <div class="item-extra-details" style="margin-top: 0.2em; font-size: 0.97em; color: #555; display: flex; gap: 1.2em; align-items: center;">
+                <div class="item-extra-details" style="margin-top: 0.1em; font-size: 0.85em; color: #64748b; display: flex; gap: 1rem; align-items: center;">
                     <span title="Quantidade"><strong>Qtd:</strong> ${item.qty}</span>
                     <div class="item-price-container" title="Valor do item">
                         <strong>Valor:</strong> 
@@ -469,13 +518,10 @@ function renderList(items = filteredItems) {
                         </span>
                         <input class="price-input" data-id="${item.id}" type="number" step="0.01" min="0" value="${item.price || ''}" style="display: none; width: 80px; padding: 2px 6px; border: 1px solid #007bff; border-radius: 4px; text-align: right;">
                     </div>
-                    <span title="Descrição"><strong>Descrição:</strong> ${item.name}</span>
                 </div>
             </div>
             <input class="item-qty" type="number" min="1" value="${item.qty}" data-id="${item.id}">
             <div class="item-actions">
-                <button class="plus1-btn" data-id="${item.id}" title="Adicionar 1">+1</button>
-                <button class="plus5-btn" data-id="${item.id}" title="Adicionar 5">+5</button>
                 <button class="bought-btn ${item.bought ? 'active' : ''}" data-id="${item.id}" title="Marcar como comprado">
                     ${item.bought ? '✅' : '✓'}
                 </button>
@@ -680,8 +726,378 @@ async function updateAnalyticsData() {
             }
         }
         
+        // Atualizar relatórios comparativos se disponível
+        if (analytics && typeof analytics.generateCompetitiveReport === 'function') {
+            updateCompetitiveReports();
+        }
+        
     } catch (error) {
         console.error('Erro ao atualizar analytics:', error);
+    }
+}
+
+// Atualiza relatórios comparativos com outros apps
+async function updateCompetitiveReports() {
+    try {
+        if (!analytics) return;
+        
+        const competitiveReport = analytics.generateCompetitiveReport();
+        
+        // Atualizar seção de comparação se existir
+        updatePerformanceScores(competitiveReport.performance);
+        updateMarketComparison(competitiveReport.marketComparison);
+        updateCompetitorComparison(competitiveReport.competitorComparison);
+        updateInsights(competitiveReport.insights);
+        updateRecommendations(competitiveReport.recommendations);
+        
+    } catch (error) {
+        console.error('Erro ao atualizar relatórios comparativos:', error);
+    }
+}
+
+function updatePerformanceScores(performance) {
+    // Atualizar scores de performance
+    const overallScoreEl = document.getElementById('overall-score');
+    const savingsScoreEl = document.getElementById('savings-score');
+    const efficiencyScoreEl = document.getElementById('efficiency-score');
+    const organizationScoreEl = document.getElementById('organization-score');
+    
+    if (overallScoreEl) {
+        overallScoreEl.textContent = performance.overallScore;
+        overallScoreEl.className = `score ${getScoreClass(performance.overallScore)}`;
+    }
+    
+    if (savingsScoreEl && performance.savingsScore) {
+        savingsScoreEl.textContent = performance.savingsScore.score;
+        savingsScoreEl.className = `score ${getScoreClass(performance.savingsScore.score)}`;
+    }
+    
+    if (efficiencyScoreEl && performance.efficiencyScore) {
+        efficiencyScoreEl.textContent = performance.efficiencyScore.score;
+        efficiencyScoreEl.className = `score ${getScoreClass(performance.efficiencyScore.score)}`;
+    }
+    
+    if (organizationScoreEl && performance.organizationScore) {
+        organizationScoreEl.textContent = performance.organizationScore.score;
+        organizationScoreEl.className = `score ${getScoreClass(performance.organizationScore.score)}`;
+    }
+}
+
+function updateMarketComparison(marketComparison) {
+    const comparisonContainer = document.getElementById('market-comparison');
+    if (!comparisonContainer || !marketComparison) return;
+    
+    const savingsDiff = marketComparison.savings.difference;
+    const efficiencyDiff = marketComparison.efficiency.difference;
+    
+    comparisonContainer.innerHTML = `
+        <div class="comparison-item">
+            <span class="comparison-label">💰 Economia vs. Mercado:</span>
+            <span class="comparison-value ${savingsDiff > 0 ? 'positive' : 'negative'}">
+                ${savingsDiff > 0 ? '+' : ''}R$ ${savingsDiff.toFixed(2)}/mês
+            </span>
+        </div>
+        <div class="comparison-item">
+            <span class="comparison-label">📊 Eficiência vs. Mercado:</span>
+            <span class="comparison-value ${efficiencyDiff > 0 ? 'positive' : 'negative'}">
+                ${efficiencyDiff > 0 ? '+' : ''}${efficiencyDiff} itens/compra
+            </span>
+        </div>
+        <div class="comparison-item">
+            <span class="comparison-label">🎯 Seu Percentil:</span>
+            <span class="comparison-value">Top ${100 - marketComparison.savings.percentile}%</span>
+        </div>
+    `;
+}
+
+function updateCompetitorComparison(competitorComparison) {
+    const competitorContainer = document.getElementById('competitor-comparison');
+    if (!competitorContainer || !competitorComparison) return;
+    
+    const topCompetitors = Object.entries(competitorComparison)
+        .sort((a, b) => b[1].userAdvantage - a[1].userAdvantage)
+        .slice(0, 3);
+    
+    competitorContainer.innerHTML = topCompetitors.map(([key, competitor]) => `
+        <div class="competitor-item">
+            <div class="competitor-name">${competitor.name}</div>
+            <div class="competitor-advantage ${competitor.userAdvantage > 0 ? 'positive' : 'negative'}">
+                ${competitor.userAdvantage > 0 ? '+' : ''}${competitor.userAdvantage.toFixed(1)}% economia
+            </div>
+            <div class="competitor-features">
+                <strong>Vantagens do Listou:</strong> ${competitor.features.unique.join(', ')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateInsights(insights) {
+    const insightsContainer = document.getElementById('advanced-insights');
+    if (!insightsContainer || !insights.length) return;
+    
+    insightsContainer.innerHTML = insights.map(insight => `
+        <div class="insight-item ${insight.type}">
+            <div class="insight-header">
+                <span class="insight-icon">${getInsightIcon(insight.type)}</span>
+                <span class="insight-title">${insight.title}</span>
+                <span class="insight-impact impact-${insight.impact}">${insight.impact.toUpperCase()}</span>
+            </div>
+            <div class="insight-message">${insight.message}</div>
+        </div>
+    `).join('');
+}
+
+function updateRecommendations(recommendations) {
+    const recommendationsContainer = document.getElementById('recommendations');
+    if (!recommendationsContainer) return;
+    
+    const allRecommendations = [
+        ...recommendations.immediate,
+        ...recommendations.shortTerm,
+        ...recommendations.longTerm
+    ];
+    
+    if (allRecommendations.length === 0) {
+        recommendationsContainer.innerHTML = '<div class="no-recommendations">🎉 Parabéns! Você está otimizando muito bem suas compras.</div>';
+        return;
+    }
+    
+    recommendationsContainer.innerHTML = allRecommendations.map(rec => `
+        <div class="recommendation-item priority-${rec.priority}">
+            <div class="recommendation-header">
+                <span class="recommendation-category">${rec.category}</span>
+                <span class="recommendation-priority priority-${rec.priority}">${rec.priority.toUpperCase()}</span>
+            </div>
+            <div class="recommendation-message">${rec.message}</div>
+            <div class="recommendation-action">${rec.action}</div>
+        </div>
+    `).join('');
+}
+
+function getScoreClass(score) {
+    if (score >= 80) return 'excellent';
+    if (score >= 60) return 'good';
+    if (score >= 40) return 'average';
+    return 'poor';
+}
+
+function getInsightIcon(type) {
+    const icons = {
+        'positive': '✅',
+        'warning': '⚠️',
+        'informational': 'ℹ️',
+        'negative': '❌'
+    };
+    return icons[type] || 'ℹ️';
+}
+
+// Gerar relatório comparativo para exportação
+async function generateComparativeReportForExport() {
+    if (!analytics) return null;
+    
+    try {
+        const report = analytics.generateCompetitiveReport();
+        const exportData = {
+            titulo: 'Relatório Comparativo - Listou',
+            dataGeracao: new Date().toLocaleDateString('pt-BR'),
+            resumo: {
+                scoreGeral: `${report.summary.overallScore}/100`,
+                posicaoMercado: `${report.summary.ranking.position} - ${report.summary.ranking.tier}`,
+                pontoForte: `${report.summary.topStrength.area} (${report.summary.topStrength.score}/100)`,
+                areaParaMelhoria: `${report.summary.improvementArea.area} (${report.summary.improvementArea.score}/100)`
+            },
+            metricas: {
+                totalGasto: `R$ ${report.userMetrics.totalSpent.toFixed(2)}`,
+                totalCompras: report.userMetrics.totalPurchases,
+                gastoMedioMensal: `R$ ${report.userMetrics.avgMonthlySpent.toFixed(2)}`,
+                itensPorCompra: report.userMetrics.avgItemsPerPurchase,
+                frequenciaCompras: `${report.userMetrics.purchaseFrequency} por semana`
+            },
+            comparacaoMercado: {
+                economiaVsMercado: `R$ ${report.marketComparison.savings.difference.toFixed(2)}/mês`,
+                percentil: `Top ${100 - report.marketComparison.savings.percentile}%`,
+                eficienciaVsMercado: `${report.marketComparison.efficiency.difference > 0 ? '+' : ''}${report.marketComparison.efficiency.difference} itens/compra`
+            },
+            competidores: Object.entries(report.competitorComparison).map(([key, comp]) => ({
+                app: comp.name,
+                vantagemEconomia: `${comp.userAdvantage > 0 ? '+' : ''}${comp.userAdvantage.toFixed(1)}%`,
+                vantagensSatisfacao: `+${comp.satisfactionDiff}%`,
+                recursoUnicos: comp.features.unique.join(', ')
+            })),
+            insights: report.insights.map(insight => ({
+                tipo: insight.type,
+                titulo: insight.title,
+                impacto: insight.impact,
+                mensagem: insight.message
+            })),
+            recomendacoes: {
+                imediatas: report.recommendations.immediate.map(r => ({
+                    categoria: r.category,
+                    mensagem: r.message,
+                    acao: r.action
+                })),
+                curtosPrazo: report.recommendations.shortTerm.map(r => ({
+                    categoria: r.category,
+                    mensagem: r.message,
+                    acao: r.action
+                })),
+                longoPrazo: report.recommendations.longTerm.map(r => ({
+                    categoria: r.category,
+                    mensagem: r.message,
+                    acao: r.action
+                }))
+            }
+        };
+        
+        return exportData;
+    } catch (error) {
+        console.error('Erro ao gerar relatório comparativo:', error);
+        return null;
+    }
+}
+
+// Exportar relatório comparativo como texto
+async function exportComparativeReport() {
+    const reportData = await generateComparativeReportForExport();
+    if (!reportData) {
+        alert('Erro ao gerar relatório. Verifique se há dados suficientes.');
+        return;
+    }
+    
+    const reportText = `
+===============================================
+    ${reportData.titulo}
+===============================================
+📅 Data de Geração: ${reportData.dataGeracao}
+
+🏆 RESUMO EXECUTIVO
+───────────────────
+• Score Geral: ${reportData.resumo.scoreGeral}
+• Posição no Mercado: ${reportData.resumo.posicaoMercado}
+• Ponto Forte: ${reportData.resumo.pontoForte}
+• Área para Melhoria: ${reportData.resumo.areaParaMelhoria}
+
+📊 SUAS MÉTRICAS
+─────────────────
+• Total Gasto: ${reportData.metricas.totalGasto}
+• Total de Compras: ${reportData.metricas.totalCompras}
+• Gasto Médio Mensal: ${reportData.metricas.gastoMedioMensal}
+• Itens por Compra: ${reportData.metricas.itensPorCompra}
+• Frequência de Compras: ${reportData.metricas.frequenciaCompras}
+
+🎯 COMPARAÇÃO COM O MERCADO
+───────────────────────────
+• Economia vs. Mercado: ${reportData.comparacaoMercado.economiaVsMercado}
+• Seu Percentil: ${reportData.comparacaoMercado.percentil}
+• Eficiência vs. Mercado: ${reportData.comparacaoMercado.eficienciaVsMercado}
+
+🥊 COMPARAÇÃO COM COMPETIDORES
+──────────────────────────────
+${reportData.competidores.map(comp => `
+• ${comp.app}:
+  - Vantagem em Economia: ${comp.vantagemEconomia}
+  - Vantagem em Satisfação: ${comp.vantagensSatisfacao}
+  - Recursos Únicos do Listou: ${comp.recursoUnicos}
+`).join('')}
+
+💡 INSIGHTS AVANÇADOS
+─────────────────────
+${reportData.insights.map(insight => `
+• [${insight.impacto.toUpperCase()}] ${insight.titulo}
+  ${insight.mensagem}
+`).join('')}
+
+🎯 RECOMENDAÇÕES
+────────────────
+
+📍 AÇÕES IMEDIATAS (ALTA PRIORIDADE):
+${reportData.recomendacoes.imediatas.length > 0 ? 
+  reportData.recomendacoes.imediatas.map(rec => `
+• ${rec.categoria}: ${rec.mensagem}
+  ▸ Ação: ${rec.acao}
+`).join('') : '✅ Nenhuma ação imediata necessária!'}
+
+📍 AÇÕES DE CURTO PRAZO (MÉDIA PRIORIDADE):
+${reportData.recomendacoes.curtosPrazo.length > 0 ? 
+  reportData.recomendacoes.curtosPrazo.map(rec => `
+• ${rec.categoria}: ${rec.mensagem}
+  ▸ Ação: ${rec.acao}
+`).join('') : '✅ Continue com as práticas atuais!'}
+
+📍 AÇÕES DE LONGO PRAZO (BAIXA PRIORIDADE):
+${reportData.recomendacoes.longoPrazo.length > 0 ? 
+  reportData.recomendacoes.longoPrazo.map(rec => `
+• ${rec.categoria}: ${rec.mensagem}
+  ▸ Ação: ${rec.acao}
+`).join('') : '✅ Excelente performance geral!'}
+
+===============================================
+Relatório gerado pelo Listou - Lista de Compras Inteligente
+Desenvolvido por Rafael Araújo
+===============================================
+    `.trim();
+    
+    // Criar e baixar arquivo
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio-comparativo-listou-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Mostrar feedback
+    showNotification('📊 Relatório comparativo exportado com sucesso!', 'success');
+}
+
+// Exportar dados comparativos como JSON
+async function exportComparativeDataJSON() {
+    const reportData = await generateComparativeReportForExport();
+    if (!reportData) {
+        alert('Erro ao gerar dados. Verifique se há informações suficientes.');
+        return;
+    }
+    
+    const jsonData = JSON.stringify(reportData, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dados-comparativos-listou-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification('📊 Dados comparativos exportados em JSON!', 'success');
+}
+
+// Função para mostrar dicas de melhoria personalizadas
+function showImprovementTips() {
+    if (!analytics) return;
+    
+    try {
+        const performance = analytics.getPerformanceMetrics();
+        const suggestions = performance.comparison.improvement;
+        
+        if (suggestions.length === 0) {
+            showNotification('🎉 Parabéns! Você já está otimizando muito bem suas compras.', 'success');
+            return;
+        }
+        
+        const highPriorityTips = suggestions.filter(s => s.priority === 'high').slice(0, 3);
+        const tips = highPriorityTips.length > 0 ? highPriorityTips : suggestions.slice(0, 3);
+        
+        const tipText = tips.map((tip, index) => 
+            `${index + 1}. ${tip.message}\n💡 ${tip.action}`
+        ).join('\n\n');
+        
+        alert(`🎯 DICAS PERSONALIZADAS PARA VOCÊ:\n\n${tipText}\n\n📊 Use os relatórios para acompanhar seu progresso!`);
+        
+    } catch (error) {
+        console.error('Erro ao mostrar dicas:', error);
     }
 }
 
@@ -789,7 +1205,7 @@ function updateRecentLists(newItem) {
     recentItem.innerHTML = `
         <span class="recent-icon">${categoryIcon}</span>
         <div class="recent-info">
-            <span class="recent-name">${newItem.name}</span>
+            <span class="recent-name">${newItem.name.toUpperCase()}</span>
             <span class="recent-date">${categoryName}</span>
         </div>
     `;
@@ -823,7 +1239,7 @@ function getCategoryDisplayName(category) {
 // Funções auxiliares para compartilhamento e exportação
 function shareList() {
     const items = currentItems.map(item => ({
-        name: item.name,
+        name: item.name.toUpperCase(),
         category: item.category,
         qty: item.qty
     }));
@@ -846,7 +1262,7 @@ function shareList() {
 
 function exportList() {
     const listText = currentItems
-        .map(item => `${item.bought ? '✅' : '☐'} ${item.name} (${item.qty}x)`)
+        .map(item => `${item.bought ? '✅' : '☐'} ${item.name.toUpperCase()} (${item.qty}x)`)
         .join('\n');
     
     try {
@@ -1467,19 +1883,58 @@ shoppingList.addEventListener('click', async e => {
             priceInput.select();
             console.log('Input de preço ativado');
         }
-    } else if (e.target.classList.contains('item-name')) {
-        priceInput.select();
-    } else if (e.target.classList.contains('item-name')) {
+    } else if (e.target.classList.contains('item-name') || e.target.closest('.item-name')) {
         // Clique no nome do item - alterna status de comprado
-        const bought = !item.bought;
-        await dbUpdateItem(id, { bought });
+        const itemNameElement = e.target.classList.contains('item-name') ? e.target : e.target.closest('.item-name');
+        const actualId = itemNameElement.dataset.id;
+        const actualItem = currentItems.find(item => item.id === parseInt(actualId));
         
+        console.log('Clique no nome do item detectado!', itemNameElement);
+        console.log('ID:', actualId, 'Item:', actualItem);
+        
+        if (!actualItem) {
+            console.error('Item não encontrado!');
+            return;
+        }
+        
+        const bought = !actualItem.bought;
+        console.log('Estado anterior:', actualItem.bought, 'Novo estado:', bought);
+        
+        await dbUpdateItem(actualId, { bought });
+        // Atualizar dados locais instantaneamente
+        actualItem.bought = bought;
+        updateStats();
+        
+        // Atualizar visual do botão e item
+        const itemElement = itemNameElement.closest('.shopping-item');
+        console.log('Elemento do item:', itemElement);
+        
+        if (itemElement) {
+            const boughtBtn = itemElement.querySelector('.bought-btn');
+            if (boughtBtn) {
+                boughtBtn.classList.toggle('active', bought);
+                boughtBtn.textContent = bought ? '✅' : '✓';
+            }
+            itemElement.classList.toggle('item-bought', bought);
+            console.log('Classe item-bought aplicada:', itemElement.classList.contains('item-bought'));
+            
+            // Forçar atualização visual se necessário
+            if (bought) {
+                itemNameElement.style.textDecoration = 'line-through';
+                itemNameElement.style.textDecorationColor = '#ef4444';
+                itemNameElement.style.textDecorationThickness = '2px';
+                console.log('Estilo de tachado forçado aplicado');
+            } else {
+                itemNameElement.style.textDecoration = 'none';
+                console.log('Estilo de tachado removido');
+            }
+        }
         // Adiciona ao histórico quando marcado como comprado
-        if (bought) {
+        if (bought && typeof intelligence !== 'undefined' && intelligence.addToPurchaseHistory) {
             intelligence.addToPurchaseHistory({
                 ...item,
                 bought: true,
-                price: item.price || intelligence.getEstimatedPrice(item.name)
+                price: item.price || (typeof intelligence.getEstimatedPrice === 'function' ? intelligence.getEstimatedPrice(item.name) : 0)
             });
         }
     }
@@ -1782,160 +2237,360 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// ==================== FUNÇÕES DE SUPERMERCADO E COMPARAÇÃO ====================
+
+// Salva o nome do supermercado selecionado
+function saveSupermarketName() {
+    const supermarketInput = document.getElementById('supermarket-name');
+    if (supermarketInput && supermarketInput.value.trim()) {
+        const supermarketName = supermarketInput.value.trim();
+        localStorage.setItem('listou-current-supermarket', supermarketName);
+        
+        // Adiciona à lista de supermercados conhecidos
+        let knownSupermarkets = JSON.parse(localStorage.getItem('listou-known-supermarkets') || '[]');
+        if (!knownSupermarkets.includes(supermarketName)) {
+            knownSupermarkets.push(supermarketName);
+            localStorage.setItem('listou-known-supermarkets', JSON.stringify(knownSupermarkets));
+            updateSupermarketFilter();
+        }
+    }
+}
+
+// Atualiza o filtro de supermercados com os supermercados conhecidos
+function updateSupermarketFilter() {
+    const supermarketFilter = document.getElementById('supermarket-filter');
+    if (!supermarketFilter) return;
+    
+    const knownSupermarkets = JSON.parse(localStorage.getItem('listou-known-supermarkets') || '[]');
+    
+    // Limpa opções existentes exceto "todos"
+    while (supermarketFilter.children.length > 1) {
+        supermarketFilter.removeChild(supermarketFilter.lastChild);
+    }
+    
+    // Adiciona supermercados conhecidos
+    knownSupermarkets.forEach(supermarket => {
+        const option = document.createElement('option');
+        option.value = supermarket.toLowerCase().replace(/\s+/g, '-');
+        option.textContent = supermarket;
+        supermarketFilter.appendChild(option);
+    });
+}
+
+// Filtra relatórios por supermercado
+function filterReportsBySupermarket() {
+    const supermarketFilter = document.getElementById('supermarket-filter');
+    if (!supermarketFilter) return;
+    
+    const selectedSupermarket = supermarketFilter.value;
+    console.log('Filtrando relatórios por supermercado:', selectedSupermarket);
+    
+    // Aqui você implementaria a lógica de filtro baseada no supermercado selecionado
+    // Por enquanto, apenas atualizamos os dados fictícios
+    updateMinimalAnalytics(selectedSupermarket);
+}
+
+// Atualiza os dados dos relatórios minimalistas
+function updateMinimalAnalytics(selectedSupermarket = 'all') {
+    // Dados fictícios para demonstração - na implementação real, 
+    // estes dados viriam do analytics.js filtrados por supermercado
+    
+    const data = {
+        totalSavings: selectedSupermarket === 'all' ? 'R$ 145,20' : 'R$ 87,30',
+        monthlySpending: selectedSupermarket === 'all' ? 'R$ 485,30' : 'R$ 543,20',
+        rankings: [
+            { name: 'Atacadão', position: '1º', diff: '-R$ 45,20', class: 'best' },
+            { name: 'Walmart', position: '2º', diff: '-R$ 32,10', class: 'good' },
+            { name: 'Extra', position: '3º', diff: '-R$ 15,80', class: 'average' },
+            { name: 'Pão de Açúcar', position: '4º', diff: '+R$ 28,90', class: 'expensive' }
+        ],
+        bestDeals: [
+            { emoji: '🥛', name: 'Leite Integral 1L', price: 'R$ 4,99', store: 'Atacadão', savings: '-R$ 1,50' },
+            { emoji: '🍞', name: 'Pão de Forma', price: 'R$ 3,79', store: 'Walmart', savings: '-R$ 0,90' },
+            { emoji: '🍌', name: 'Banana Nanica kg', price: 'R$ 2,99', store: 'Extra', savings: '-R$ 1,20' }
+        ]
+    };
+    
+    // Atualiza elementos na interface
+    const totalSavingsEl = document.getElementById('total-savings');
+    const monthlySpendingEl = document.getElementById('monthly-spending');
+    
+    if (totalSavingsEl) totalSavingsEl.textContent = data.totalSavings;
+    if (monthlySpendingEl) monthlySpendingEl.textContent = data.monthlySpending;
+    
+    // Atualiza ranking de supermercados
+    updateSupermarketRanking(data.rankings);
+    
+    // Atualiza melhores ofertas
+    updateBestDeals(data.bestDeals);
+}
+
+// Atualiza o ranking de supermercados
+function updateSupermarketRanking(rankings) {
+    const rankingContainer = document.getElementById('supermarket-ranking');
+    if (!rankingContainer) return;
+    
+    rankingContainer.innerHTML = '';
+    
+    rankings.forEach(ranking => {
+        const rankingItem = document.createElement('div');
+        rankingItem.className = `ranking-item ${ranking.class}`;
+        rankingItem.innerHTML = `
+            <span class="rank-position">${ranking.position}</span>
+            <span class="supermarket-name">${ranking.name}</span>
+            <span class="price-diff">${ranking.diff}</span>
+        `;
+        rankingContainer.appendChild(rankingItem);
+    });
+}
+
+// Atualiza as melhores ofertas
+function updateBestDeals(deals) {
+    const dealsContainer = document.getElementById('best-prices-items');
+    if (!dealsContainer) return;
+    
+    dealsContainer.innerHTML = '';
+    
+    deals.forEach(deal => {
+        const dealItem = document.createElement('div');
+        dealItem.className = 'deal-item';
+        dealItem.innerHTML = `
+            <span class="item-emoji">${deal.emoji}</span>
+            <div class="item-details">
+                <span class="item-name">${deal.name}</span>
+                <span class="best-price">${deal.price} <small>no ${deal.store}</small></span>
+            </div>
+            <span class="savings">${deal.savings}</span>
+        `;
+        dealsContainer.appendChild(dealItem);
+    });
+}
+
+// ==================== FUNÇÕES DE EXPORTAÇÃO PNG E PDF ====================
+
+// Exporta relatório como PNG com marca d'água
+async function exportReportAsPNG() {
+    try {
+        // Importa a biblioteca html2canvas dinamicamente
+        const html2canvas = await import('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        
+        const reportSection = document.getElementById('section-analytics');
+        if (!reportSection) {
+            alert('Erro: Seção de relatórios não encontrada');
+            return;
+        }
+        
+        // Cria um elemento temporário para o relatório com marca d'água
+        const tempContainer = createReportWithWatermark(reportSection);
+        document.body.appendChild(tempContainer);
+        
+        // Gera a imagem
+        const canvas = await html2canvas.default(tempContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            scrollX: 0,
+            scrollY: 0
+        });
+        
+        // Remove o elemento temporário
+        document.body.removeChild(tempContainer);
+        
+        // Converte para blob e faz download
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `listou-relatorio-${new Date().toISOString().split('T')[0]}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+        
+        // Mostra opções de compartilhamento se disponível
+        if (navigator.share && blob) {
+            const file = new File([blob], `listou-relatorio-${new Date().toISOString().split('T')[0]}.png`, {
+                type: 'image/png'
+            });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                const shareBtn = confirm('Download realizado! Deseja compartilhar o relatório?');
+                if (shareBtn) {
+                    await navigator.share({
+                        title: 'Relatório Listou - Economia de Compras',
+                        text: 'Confira meu relatório de economia em compras gerado pelo Listou!',
+                        files: [file]
+                    });
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Erro ao exportar PNG:', error);
+        alert('Erro ao gerar imagem. Tente novamente.');
+    }
+}
+
+// Exporta relatório como PDF com marca d'água
+async function exportReportAsPDF() {
+    try {
+        // Importa a biblioteca jsPDF dinamicamente
+        const jsPDF = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        const html2canvas = await import('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+        
+        const reportSection = document.getElementById('section-analytics');
+        if (!reportSection) {
+            alert('Erro: Seção de relatórios não encontrada');
+            return;
+        }
+        
+        // Cria um elemento temporário para o relatório com marca d'água
+        const tempContainer = createReportWithWatermark(reportSection);
+        document.body.appendChild(tempContainer);
+        
+        // Gera a imagem do relatório
+        const canvas = await html2canvas.default(tempContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true
+        });
+        
+        // Remove o elemento temporário
+        document.body.removeChild(tempContainer);
+        
+        // Cria o PDF
+        const pdf = new jsPDF.jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        // Adiciona logo/marca d'água no cabeçalho
+        pdf.setFontSize(20);
+        pdf.setTextColor(0, 123, 255);
+        pdf.text('Listou - Lista Inteligente', 20, 20);
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(128, 128, 128);
+        pdf.text('Relatório de Economia em Compras', 20, 30);
+        pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 38);
+        
+        // Adiciona a imagem do relatório
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 170; // largura em mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 20, 50, imgWidth, imgHeight);
+        
+        // Adiciona rodapé com marca d'água
+        const pageHeight = pdf.internal.pageSize.height;
+        pdf.setFontSize(10);
+        pdf.setTextColor(180, 180, 180);
+        pdf.text('Gerado pelo Listou - App de Lista de Compras Inteligente', 20, pageHeight - 10);
+        
+        // Salva o PDF
+        const fileName = `listou-relatorio-${new Date().toISOString().split('T')[0]}.pdf`;
+        pdf.save(fileName);
+        
+        // Opção de compartilhamento se disponível
+        if (navigator.share) {
+            const pdfBlob = pdf.output('blob');
+            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                const shareBtn = confirm('Download realizado! Deseja compartilhar o relatório?');
+                if (shareBtn) {
+                    await navigator.share({
+                        title: 'Relatório Listou - Economia de Compras',
+                        text: 'Confira meu relatório de economia em compras gerado pelo Listou!',
+                        files: [file]
+                    });
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        alert('Erro ao gerar PDF. Tente novamente.');
+    }
+}
+
+// Cria uma versão do relatório com marca d'água para exportação
+function createReportWithWatermark(originalElement) {
+    const tempContainer = originalElement.cloneNode(true);
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.width = '800px';
+    tempContainer.style.backgroundColor = '#ffffff';
+    tempContainer.style.padding = '20px';
+    tempContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    
+    // Adiciona cabeçalho com logo
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '20px';
+    header.style.paddingBottom = '15px';
+    header.style.borderBottom = '2px solid #007bff';
+    
+    header.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="width: 50px; height: 50px; background: #007bff; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px;">L</div>
+            <div>
+                <h1 style="margin: 0; color: #007bff; font-size: 24px;">Listou</h1>
+                <p style="margin: 0; color: #666; font-size: 14px;">Lista de Compras Inteligente</p>
+            </div>
+        </div>
+        <div style="margin-left: auto; text-align: right; color: #666; font-size: 12px;">
+            <div>Relatório gerado em:</div>
+            <div style="font-weight: bold;">${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+    `;
+    
+    tempContainer.insertBefore(header, tempContainer.firstChild);
+    
+    // Adiciona rodapé com marca d'água
+    const footer = document.createElement('div');
+    footer.style.marginTop = '30px';
+    footer.style.paddingTop = '15px';
+    footer.style.borderTop = '1px solid #eee';
+    footer.style.textAlign = 'center';
+    footer.style.color = '#999';
+    footer.style.fontSize = '12px';
+    
+    footer.innerHTML = `
+        <p style="margin: 0;">📱 Baixe o Listou - App gratuito de lista de compras com IA</p>
+        <p style="margin: 5px 0 0 0;">🌐 Acesse: listou.app | 💡 Economize mais com comparações inteligentes</p>
+    `;
+    
+    tempContainer.appendChild(footer);
+    
+    return tempContainer;
+}
+
+// Inicializa funcionalidades ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+    // Carrega nome do supermercado salvo
+    const savedSupermarket = localStorage.getItem('listou-current-supermarket');
+    const supermarketInput = document.getElementById('supermarket-name');
+    if (savedSupermarket && supermarketInput) {
+        supermarketInput.value = savedSupermarket;
+    }
+    
+    // Atualiza filtro de supermercados
+    updateSupermarketFilter();
+    
+    // Atualiza dados dos relatórios
+    updateMinimalAnalytics();
+});
+
 // TODO: Integrar Capacitor para build Android e acesso à câmera
 // https://capacitorjs.com/docs/apis/camera
 
-// ===== ASSISTENTE IA AVANÇADO =====
-
-// Event listeners para IA
-if (aiSendBtn) {
-    aiSendBtn.addEventListener('click', () => {
-        const command = aiVoiceInput?.value?.trim();
-        if (command) {
-            processAICommand(command);
-            if (aiVoiceInput) aiVoiceInput.value = '';
-        }
-    });
-}
-
-if (aiVoiceInput) {
-    aiVoiceInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const command = aiVoiceInput.value.trim();
-            if (command) {
-                processAICommand(command);
-                aiVoiceInput.value = '';
-            }
-        }
-    });
-}
-
-// Processa comando de IA
-async function processAICommand(command) {
-    if (!command.trim()) return;
-    
-    showAIThinking();
-    
-    try {
-        if (command.toLowerCase().includes('adicionar') || command.toLowerCase().includes('add')) {
-            await handleAddCommand(command);
-        } else if (command.toLowerCase().includes('sugerir') || command.toLowerCase().includes('recomendar')) {
-            showSuggestions();
-        } else if (command.toLowerCase().includes('analisar') || command.toLowerCase().includes('insights')) {
-            showAIInsights();
-        } else {
-            showGeneralResponse(command);
-        }
-    } catch (error) {
-        console.error('Erro no assistente IA:', error);
-        showAIResponse('🤖 Tente algo como "Adicionar bananas".');
-    }
-}
-
-// Processa comando de adicionar
-async function handleAddCommand(command) {
-    const items = extractItemsFromCommand(command);
-    let addedCount = 0;
-    
-    for (const itemName of items) {
-        const item = {
-            name: itemName,
-            category: intelligence.detectCategory(itemName),
-            qty: 1,
-            bought: false,
-            price: intelligence.getEstimatedPrice(itemName),
-            addedAt: new Date().toISOString()
-        };
-        
-        await dbAddItem(item);
-        addedCount++;
-    }
-    
-    if (addedCount > 0) {
-        refreshList();
-        showAIResponse(`✅ Adicionei ${addedCount} item(ns) à sua lista!`);
-    } else {
-        showAIResponse('🤖 Tente: "adicionar bananas e maçãs".');
-    }
-}
-
-// Extrai itens do comando
-function extractItemsFromCommand(command) {
-    const items = [];
-    const words = command.toLowerCase().split(/[\s,e]+/);
-    
-    const knownProducts = [
-        'banana', 'maçã', 'laranja', 'leite', 'pão', 'ovos', 'frango', 'carne',
-        'arroz', 'feijão', 'batata', 'tomate', 'cebola', 'alface', 'cenoura'
-    ];
-    
-    words.forEach(word => {
-        const cleanWord = word.replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/g, '');
-        if (knownProducts.includes(cleanWord)) {
-            items.push(cleanWord);
-        }
-    });
-    
-    return [...new Set(items)];
-}
-
-// Mostra sugestões inteligentes
-function showSuggestions() {
-    const suggestions = intelligence.getSmartSuggestions();
-    let response = '💡 <strong>Sugestões:</strong><br>';
-    
-    suggestions.slice(0, 4).forEach(suggestion => {
-        response += `<div class="ai-tip">${getItemIcon(suggestion.name)} ${suggestion.name}</div>`;
-    });
-    
-    showAIResponse(response);
-}
-
-// Mostra insights inteligentes
-function showAIInsights() {
-    const totalItems = currentItems.length;
-    const totalValue = currentItems.reduce((sum, item) => sum + (intelligence.getEstimatedPrice(item.name) * item.qty), 0);
-    
-    let response = '🧠 <strong>Análise:</strong><br>';
-    response += `<div class="ai-nutrition-insight">📊 ${totalItems} itens • R$ ${totalValue.toFixed(2)}</div>`;
-    
-    const categories = {};
-    currentItems.forEach(item => {
-        const cat = item.category || 'outros';
-        categories[cat] = (categories[cat] || 0) + 1;
-    });
-    
-    if (categories['frutas'] && categories['verduras']) {
-        response += '<div class="ai-nutrition-insight">🥗 Ótimo equilíbrio nutricional!</div>';
-    } else if (!categories['frutas']) {
-        response += '<div class="ai-tip">🍎 Considere adicionar frutas</div>';
-    }
-    
-    showAIResponse(response);
-}
-
-// Resposta geral
-function showGeneralResponse(command) {
-    const responses = [
-        '🤖 Experimente: "adicionar frutas" ou "analisar lista".',
-        '💡 Como posso ajudar com sua lista de compras?',
-        '🛒 Sou seu assistente inteligente!'
-    ];
-    
-    showAIResponse(responses[Math.floor(Math.random() * responses.length)]);
-}
-
-// Funções auxiliares
-// function showAIResponse(message) {}
-// function showAIThinking() {}
-
-function getItemIcon(itemName) {
-    const icons = {
-        'banana': '🍌', 'maçã': '🍎', 'laranja': '🍊', 'leite': '🥛',
-        'pão': '🍞', 'frango': '🐔', 'carne': '🥩', 'arroz': '🍚'
-    };
-    return icons[itemName.toLowerCase()] || '📦';
-}
 
 // Aplicar tema claro fixo
 document.documentElement.classList.add('theme-light');
@@ -1948,10 +2603,3 @@ await refreshList();
 console.log('App inicializado com sucesso!');
 
 }); // Fim do DOMContentLoaded
-
-// Inicializa assistente IA após carregamento
-setTimeout(() => {
-    // if (aiResponse) {
-    //     showAIResponse('👋 Olá! Sou seu assistente inteligente.<br><div class="ai-tip">💬 Experimente: "Adicionar frutas" ou "Analisar lista"</div>');
-    // }
-}, 3000);

@@ -100,11 +100,26 @@
     <main id="main-content" class="main-content">
         <!-- Main Section -->
         <section id="section-main" class="content-section active">
+
             <header class="section-header">
-                <h1>Lista de Compras</h1>
-                <div class="header-actions">
-                    <button id="clear-all-btn" class="header-btn" title="Limpar lista">🗑️</button>
-                    <button id="select-all-btn" class="header-btn" title="Selecionar todos">☑️</button>
+                <div class="main-header-app">
+                    <picture>
+                        <source srcset="logo.svg" type="image/svg+xml">
+                        <img src="logo.svg" alt="Logo Listou" class="main-logo" width="64" height="64" loading="lazy">
+                    </picture>
+                    <span class="main-app-name">Listou</span>
+                </div>
+                <div class="section-title-container">
+                    <h1>Lista de Compras</h1>
+                    <div class="supermarket-input-container">
+                        <input type="text" id="supermarket-name" placeholder="📍 Nome do supermercado" 
+                               class="supermarket-input" maxlength="50">
+                        <small class="supermarket-hint">Para análises comparativas de preços</small>
+                    </div>
+                    <div class="header-actions">
+                        <button id="clear-all-btn" class="header-btn" title="Limpar lista">🗑️</button>
+                        <button id="select-all-btn" class="header-btn" title="Selecionar todos">☑️</button>
+                    </div>
                 </div>
             </header>
 
@@ -115,6 +130,18 @@
                 </div>
                 <div class="input-container" style="display: flex; align-items: center; gap: 0.5rem;">
                     <input id="item-qty-input" type="number" min="1" step="1" placeholder="Qtd" style="width: 70px;">
+                    <select id="item-unit-input" style="width: 80px;">
+                        <option value="">Unid.</option>
+                        <option value="unid">unid</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">L</option>
+                        <option value="ml">ml</option>
+                        <option value="pc">pc</option>
+                        <option value="cx">cx</option>
+                        <option value="pct">pct</option>
+                        <option value="dz">dz</option>
+                    </select>
                     <div class="input-price-wrapper" style="position: relative; display: flex; align-items: center;">
                         <span class="input-price-symbol" style="position: absolute; left: 10px; color: #888; font-size: 1rem; pointer-events: none;">R$</span>
                         <input id="item-price-input" type="number" min="0" step="0.01" placeholder="Valor" style="padding-left: 2.2em; width: 90px;">
@@ -157,19 +184,7 @@
             </section>
 
             <section id="smart-suggestions" class="suggestions-section">
-                <h3>🤖 Assistente IA Inteligente</h3>
-                <div class="test-warning">
-                    ⚠️ <strong>Funcionalidade em Teste</strong> - Esta feature pode não funcionar plenamente ainda.
-                </div>
-                <div class="ai-assistant">
-                    <div class="ai-input-container">
-                        <input id="ai-voice-input" type="text" placeholder="Experimente: 'Adicionar frutas para vitamina C'" class="ai-input">
-                        <button id="ai-voice-btn" class="ai-voice-btn" title="Comando por voz">🎤</button>
-                        <button id="ai-send-btn" class="ai-send-btn" title="Enviar">💬</button>
-                    </div>
-                    <div id="ai-response" class="ai-response"></div>
-                </div>
-                <h3>💡 Sugestões Inteligentes</h3>
+                <h3>💡 Sugestões</h3>
                 <div id="suggestions-list"></div>
             </section>
 
@@ -222,63 +237,132 @@
         <!-- Analytics Section -->
         <section id="section-analytics" class="content-section">
             <header class="section-header">
-                <h1>📊 Relatórios e Análises</h1>
-                <select id="analytics-period" class="header-select">
-                    <option value="week">Esta semana</option>
-                    <option value="month">Este mês</option>
-                    <option value="quarter">Últimos 3 meses</option>
-                </select>
+                <h1>📊 Relatórios Comparativos</h1>
+                <div class="section-header-controls">
+                    <select id="analytics-period" class="header-select">
+                        <option value="week">Esta semana</option>
+                        <option value="month">Este mês</option>
+                        <option value="quarter">Últimos 3 meses</option>
+                    </select>
+                    <div class="header-actions">
+                        <button id="export-png-report-btn" class="header-btn" title="Exportar como Imagem PNG">
+                            �️ PNG
+                        </button>
+                        <button id="export-pdf-report-btn" class="header-btn" title="Exportar como PDF">
+                            � PDF
+                        </button>
+                        <button id="show-improvement-tips-btn" class="header-btn" title="Dicas de Economia">
+                            � Dicas
+                        </button>
+                    </div>
+                </div>
             </header>
 
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <h3>Gastos por Categoria</h3>
-                    <div class="chart-placeholder">
-                        <div class="category-expense">
-                            <span class="category-name">🍎 Frutas</span>
-                            <span class="category-value">R$ 85,50</span>
-                        </div>
-                        <div class="category-expense">
-                            <span class="category-name">🥩 Carnes</span>
-                            <span class="category-value">R$ 120,00</span>
-                        </div>
-                        <div class="category-expense">
-                            <span class="category-name">🥛 Laticínios</span>
-                            <span class="category-value">R$ 45,80</span>
+            <!-- Filtro por Supermercado -->
+            <div class="supermarket-filter">
+                <select id="supermarket-filter" class="filter-select">
+                    <option value="all">Todos os supermercados</option>
+                    <option value="pao-de-acucar">Pão de Açúcar</option>
+                    <option value="carrefour">Carrefour</option>
+                    <option value="extra">Extra</option>
+                    <option value="walmart">Walmart</option>
+                </select>
+                <small class="filter-hint">Compare preços entre diferentes mercados</small>
+            </div>
+
+            <div class="analytics-grid-minimal">
+                <!-- Card Principal de Economia -->
+                <div class="analytics-card primary-card">
+                    <h3>💰 Economia Total</h3>
+                    <div class="savings-summary">
+                        <span class="savings-amount" id="total-savings">R$ 145,20</span>
+                        <span class="savings-desc">vs. média do mercado</span>
+                        <div class="savings-comparison">
+                            <span class="comparison-item">
+                                <span class="comparison-label">Seu gasto mensal:</span>
+                                <span class="comparison-value" id="monthly-spending">R$ 485,30</span>
+                            </span>
+                            <span class="comparison-item">
+                                <span class="comparison-label">Média brasileira:</span>
+                                <span class="comparison-value">R$ 630,50</span>
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="analytics-card">
-                    <h3>Itens Mais Comprados</h3>
-                    <div class="top-items">
-                        <div class="top-item">
-                            <span class="item-rank">1</span>
-                            <span class="item-name">Leite</span>
-                            <span class="item-count">12x</span>
+                <!-- Comparação de Supermercados -->
+                <div class="analytics-card supermarket-comparison">
+                    <h3>� Ranking de Preços</h3>
+                    <div id="supermarket-ranking" class="ranking-container">
+                        <div class="ranking-item best">
+                            <span class="rank-position">1º</span>
+                            <span class="supermarket-name">Atacadão</span>
+                            <span class="price-diff">-R$ 45,20</span>
                         </div>
-                        <div class="top-item">
-                            <span class="item-rank">2</span>
-                            <span class="item-name">Pão</span>
-                            <span class="item-count">10x</span>
+                        <div class="ranking-item good">
+                            <span class="rank-position">2º</span>
+                            <span class="supermarket-name">Walmart</span>
+                            <span class="price-diff">-R$ 32,10</span>
                         </div>
-                        <div class="top-item">
-                            <span class="item-rank">3</span>
-                            <span class="item-name">Banana</span>
-                            <span class="item-count">8x</span>
+                        <div class="ranking-item average">
+                            <span class="rank-position">3º</span>
+                            <span class="supermarket-name">Extra</span>
+                            <span class="price-diff">-R$ 15,80</span>
+                        </div>
+                        <div class="ranking-item expensive">
+                            <span class="rank-position">4º</span>
+                            <span class="supermarket-name">Pão de Açúcar</span>
+                            <span class="price-diff">+R$ 28,90</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="analytics-card">
-                    <h3>Economia Este Mês</h3>
-                    <div class="savings-info">
-                        <span class="savings-amount">R$ 45,20</span>
-                        <span class="savings-desc">Economia com ofertas</span>
-                        <div class="savings-tip">💡 Use mais produtos da estação para economizar</div>
+                <!-- Top Itens com Melhor Preço -->
+                <div class="analytics-card top-deals">
+                    <h3>🎯 Melhores Preços por Item</h3>
+                    <div id="best-prices-items" class="deals-container">
+                        <div class="deal-item">
+                            <span class="item-emoji">🥛</span>
+                            <div class="item-details">
+                                <span class="item-name">Leite Integral 1L</span>
+                                <span class="best-price">R$ 4,99 <small>no Atacadão</small></span>
+                            </div>
+                            <span class="savings">-R$ 1,50</span>
+                        </div>
+                        <div class="deal-item">
+                            <span class="item-emoji">🍞</span>
+                            <div class="item-details">
+                                <span class="item-name">Pão de Forma</span>
+                                <span class="best-price">R$ 3,79 <small>no Walmart</small></span>
+                            </div>
+                            <span class="savings">-R$ 0,90</span>
+                        </div>
+                        <div class="deal-item">
+                            <span class="item-emoji">🍌</span>
+                            <div class="item-details">
+                                <span class="item-name">Banana Nanica kg</span>
+                                <span class="best-price">R$ 2,99 <small>no Extra</small></span>
+                            </div>
+                            <span class="savings">-R$ 1,20</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Essenciais -->
+                <div class="analytics-card insights-minimal">
+                    <h3>💡 Insight Principal</h3>
+                    <div id="main-insight" class="insight-highlight">
+                        <div class="insight-message">
+                            Comprando no <strong>Atacadão</strong> você economizaria 
+                            <strong>R$ 45,20/mês</strong> na sua lista atual
+                        </div>
+                        <div class="insight-action">
+                            📍 Localizar no mapa • 🔔 Ativar alertas de preço
+                        </div>
                     </div>
                 </div>
             </div>
+        </section>
         </section>
 
         <!-- History Section -->
@@ -406,5 +490,7 @@
     <script src="analytics.js" type="module"></script>
     <script src="notifications.js" type="module"></script>
     <script src="app.js" type="module"></script>
+    <!-- Script para dados de demonstração - remover em produção -->
+    <script src="supermarket-demo-data.js"></script>
 </body>
 </html>
