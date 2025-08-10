@@ -1,6 +1,16 @@
 // app.js - Lógica principal da UI do Listou
 // v2: Sistema inteligente com categorias, sugestões, análise de padrões e preços
 // v3: Interface com sidebar moderna e navegação por seções
+// v4: Sistema de tipos de compra (Avulsa/Controlada)
+
+// Constantes para tipos de compra
+const PURCHASE_TYPES = {
+    CASUAL: 'casual',
+    CONTROLLED: 'controlled'
+};
+
+// Variáveis globais para gerenciamento do tipo de compra
+let currentPurchaseType = null;
 
 // Import com tratamento de erro
 async function loadModules() {
@@ -31,6 +41,525 @@ let currentSupermarket = null;
 
 // Variáveis DOM globais
 let itemInput, categorySelect, addItemBtn, autocompleteList;
+
+// Funções para gerenciar tipo de compra
+function loadPurchaseType() {
+    const saved = localStorage.getItem('listou-purchase-type');
+    return saved || null;
+}
+
+function savePurchaseType(type) {
+    localStorage.setItem('listou-purchase-type', type);
+    currentPurchaseType = type;
+    updatePurchaseTypeBadge();
+}
+
+function updatePurchaseTypeBadge() {
+    const badge = document.getElementById('purchase-type-badge');
+    if (badge && currentPurchaseType) {
+        if (currentPurchaseType === PURCHASE_TYPES.CONTROLLED) {
+            badge.textContent = '📊 Controlada';
+            badge.className = 'purchase-type-badge controlled';
+        } else {
+            badge.textContent = '🛒 Avulsa';
+            badge.className = 'purchase-type-badge casual';
+        }
+    }
+}
+
+function showPurchaseTypeScreen() {
+    const screen = document.getElementById('purchase-type-screen');
+    const mainContent = document.getElementById('main-content');
+    
+    if (screen && mainContent) {
+        screen.style.display = 'flex';
+        mainContent.style.display = 'none';
+        screen.classList.remove('hidden');
+    }
+}
+
+function hidePurchaseTypeScreen() {
+    const screen = document.getElementById('purchase-type-screen');
+    const mainContent = document.getElementById('main-content');
+    
+    if (screen && mainContent) {
+        screen.style.display = 'none';
+        mainContent.style.display = 'block';
+        screen.classList.add('hidden');
+    }
+}
+
+function selectPurchaseType(type) {
+    console.log(`🎯 Tipo de compra selecionado: ${type}`);
+    
+    // Salva a preferência
+    savePurchaseType(type);
+    
+    // Esconde a tela de seleção e mostra o app principal
+    hidePurchaseTypeScreen();
+    
+    // Foca no input principal
+    setTimeout(() => {
+        const itemInput = document.getElementById('item-input');
+        if (itemInput) {
+            itemInput.focus();
+        }
+    }, 300);
+}
+
+function setupPurchaseTypeListeners() {
+    console.log('🎯 Configurando listeners para tipo de compra...');
+    
+    // Event listeners para os botões de seleção de tipo
+    const casualBtn = document.querySelector('[data-type="casual"]');
+    const controlledBtn = document.querySelector('[data-type="controlled"]');
+    
+    console.log('Botões encontrados:', { casualBtn: !!casualBtn, controlledBtn: !!controlledBtn });
+    
+    if (casualBtn) {
+        casualBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🛒 Botão Casual clicado');
+            selectPurchaseType(PURCHASE_TYPES.CASUAL);
+        });
+    }
+    
+    if (controlledBtn) {
+        controlledBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('📊 Botão Controlada clicado');
+            selectPurchaseType(PURCHASE_TYPES.CONTROLLED);
+        });
+    }
+    
+    // Botão para alterar tipo de compra
+    const changePurchaseTypeBtn = document.getElementById('change-purchase-type-btn');
+    console.log('Botão alterar tipo encontrado:', !!changePurchaseTypeBtn);
+    
+    if (changePurchaseTypeBtn) {
+        changePurchaseTypeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🔄 Botão alterar tipo clicado');
+            showPurchaseTypeScreen();
+        });
+    }
+}
+
+// Funções para controlar a sidebar
+function setupSidebar() {
+    console.log('🎯 Configurando sidebar...');
+    
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarClose = document.getElementById('sidebar-close');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    console.log('Elementos sidebar encontrados:', {
+        toggle: !!sidebarToggle,
+        sidebar: !!sidebar,
+        close: !!sidebarClose,
+        overlay: !!sidebarOverlay
+    });
+
+    function toggleSidebar() {
+        console.log('🔄 Alternando sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('open');
+            sidebar.classList.remove('closed');
+            document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+            
+            // Cria overlay se não existir
+            if (!sidebarOverlay && sidebar.classList.contains('open')) {
+                const overlay = document.createElement('div');
+                overlay.id = 'sidebar-overlay';
+                overlay.className = 'sidebar-overlay show';
+                overlay.addEventListener('click', closeSidebar);
+                document.body.appendChild(overlay);
+            } else if (sidebarOverlay) {
+                sidebarOverlay.classList.toggle('show', sidebar.classList.contains('open'));
+            }
+        }
+    }
+
+    function closeSidebar() {
+        console.log('❌ Fechando sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('open');
+            sidebar.classList.add('closed');
+            document.body.style.overflow = '';
+            
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.remove('show');
+            }
+        }
+    }
+
+    // Torna a função global
+    window.closeSidebar = closeSidebar;
+
+    // Event listeners
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🍔 Botão hamburger clicado');
+            toggleSidebar();
+        });
+    }
+
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeSidebar();
+        });
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeSidebar();
+        });
+    }
+
+    // Navegação entre seções
+    setupSectionNavigation();
+}
+
+function setupSectionNavigation() {
+    console.log('🎯 Configurando navegação entre seções...');
+    
+    // Garantir que todos os nav-items sejam visíveis
+    const navItems = document.querySelectorAll('.nav-item');
+    console.log(`📋 Encontrados ${navItems.length} itens de navegação:`, 
+        Array.from(navItems).map(item => item.getAttribute('data-section') || 'sem data-section'));
+    
+    // Event delegation para navegação
+    document.addEventListener('click', (e) => {
+        const navItem = e.target.closest('.nav-item');
+        if (navItem && navItem.hasAttribute('data-section')) {
+            e.preventDefault();
+            const sectionId = navItem.getAttribute('data-section');
+            console.log(`📍 Navegando para seção: ${sectionId}`);
+            
+            // Remove classe active de todos os nav-items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Adiciona classe active ao item clicado
+            navItem.classList.add('active');
+            
+            // Esconde todas as seções
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Mostra a seção selecionada
+            const targetSection = document.getElementById(`section-${sectionId}`);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log(`✅ Seção ${sectionId} ativada`);
+                
+                // Carrega dados específicos da seção se necessário
+                if (sectionId === 'supermarkets') {
+                    loadSupermarkets();
+                } else if (sectionId === 'analytics') {
+                    loadAnalytics();
+                } else if (sectionId === 'templates') {
+                    loadTemplates();
+                }
+            } else {
+                console.error(`❌ Seção ${sectionId} não encontrada`);
+            }
+            
+            // Fecha sidebar no mobile
+            if (window.innerWidth < 1024) {
+                window.closeSidebar();
+            }
+        }
+    });
+    
+    // Forçar visibilidade dos nav-items
+    setTimeout(() => {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.style.display = 'flex';
+            item.style.visibility = 'visible';
+            item.style.opacity = '1';
+        });
+        console.log('🔍 Forçada visibilidade dos nav-items');
+    }, 100);
+}
+
+// Funções para gerenciar supermercados
+function setupSupermarkets() {
+    console.log('🏪 Configurando gerenciamento de supermercados...');
+    
+    const addSupermarketBtn = document.getElementById('add-supermarket-btn');
+    const supermarketForm = document.getElementById('supermarket-form');
+    
+    if (addSupermarketBtn) {
+        addSupermarketBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('➕ Botão adicionar supermercado clicado');
+            openSupermarketModal();
+        });
+    }
+    
+    if (supermarketForm) {
+        supermarketForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('💾 Formulário de supermercado submetido');
+            saveSupermarket();
+        });
+    }
+}
+
+function openSupermarketModal(supermarketId = null) {
+    const modal = document.getElementById('supermarket-modal');
+    const modalTitle = document.getElementById('supermarket-modal-title');
+    const form = document.getElementById('supermarket-form');
+    
+    if (!modal) return;
+    
+    // Limpa o formulário
+    if (form) form.reset();
+    
+    if (supermarketId) {
+        // Modo edição
+        modalTitle.textContent = 'Editar Supermercado';
+        loadSupermarketData(supermarketId);
+        modal.dataset.editId = supermarketId;
+    } else {
+        // Modo criação
+        modalTitle.textContent = 'Adicionar Supermercado';
+        delete modal.dataset.editId;
+    }
+    
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    
+    // Foca no primeiro campo
+    const firstInput = modal.querySelector('input[type="text"]');
+    if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+    }
+}
+
+function closeSupermarketModal() {
+    const modal = document.getElementById('supermarket-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        delete modal.dataset.editId;
+    }
+}
+
+async function loadSupermarketData(supermarketId) {
+    try {
+        const supermarket = await window.dbGetSupermarketById(supermarketId);
+        if (supermarket) {
+            document.getElementById('supermarket-name').value = supermarket.name || '';
+            document.getElementById('supermarket-location').value = supermarket.location || '';
+            document.getElementById('supermarket-type').value = supermarket.type || 'supermercado';
+            document.getElementById('supermarket-notes').value = supermarket.notes || '';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados do supermercado:', error);
+    }
+}
+
+async function saveSupermarket() {
+    const modal = document.getElementById('supermarket-modal');
+    const isEditing = modal && modal.dataset.editId;
+    
+    const name = document.getElementById('supermarket-name').value.trim();
+    const location = document.getElementById('supermarket-location').value.trim();
+    const type = document.getElementById('supermarket-type').value;
+    const notes = document.getElementById('supermarket-notes').value.trim();
+    
+    if (!name) {
+        alert('O nome do supermercado é obrigatório');
+        return;
+    }
+    
+    const supermarketData = {
+        name,
+        location,
+        type,
+        notes,
+        createdAt: isEditing ? undefined : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+    
+    try {
+        if (isEditing) {
+            await window.dbUpdateSupermarket(modal.dataset.editId, supermarketData);
+            console.log('✅ Supermercado atualizado com sucesso');
+        } else {
+            await window.dbAddSupermarket(supermarketData);
+            console.log('✅ Supermercado adicionado com sucesso');
+        }
+        
+        closeSupermarketModal();
+        loadSupermarkets();
+        updateSupermarketSelects();
+        
+    } catch (error) {
+        console.error('Erro ao salvar supermercado:', error);
+        alert('Erro ao salvar supermercado. Tente novamente.');
+    }
+}
+
+async function loadSupermarkets() {
+    try {
+        const supermarkets = await window.dbGetSupermarkets();
+        console.log(`📋 Carregando ${supermarkets.length} supermercados`);
+        
+        const container = document.getElementById('supermarkets-grid');
+        if (!container) return;
+        
+        if (supermarkets.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏪</div>
+                    <h3>Nenhum supermercado cadastrado</h3>
+                    <p>Adicione supermercados para começar a comparar preços</p>
+                    <button class="btn-primary" onclick="openSupermarketModal()">+ Adicionar primeiro supermercado</button>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        supermarkets.forEach(supermarket => {
+            const card = createSupermarketCard(supermarket);
+            container.appendChild(card);
+        });
+        
+    } catch (error) {
+        console.error('Erro ao carregar supermercados:', error);
+    }
+}
+
+function createSupermarketCard(supermarket) {
+    const card = document.createElement('div');
+    card.className = 'supermarket-card';
+    card.dataset.id = supermarket.id;
+    
+    const typeIcons = {
+        supermercado: '🛒',
+        hipermercado: '🏬',
+        atacado: '📦',
+        mercearia: '🏪',
+        feira: '🍎',
+        farmacia: '💊',
+        conveniencia: '🏬',
+        outro: '🏢'
+    };
+    
+    const icon = typeIcons[supermarket.type] || '🏪';
+    
+    card.innerHTML = `
+        <div class="supermarket-header">
+            <div class="supermarket-icon">${icon}</div>
+            <div class="supermarket-info">
+                <h3 class="supermarket-name">${supermarket.name}</h3>
+                <p class="supermarket-location">${supermarket.location || 'Localização não informada'}</p>
+                <span class="supermarket-type">${supermarket.type}</span>
+            </div>
+        </div>
+        <div class="supermarket-actions">
+            <button class="supermarket-action-btn edit" onclick="openSupermarketModal('${supermarket.id}')" title="Editar">
+                ✏️
+            </button>
+            <button class="supermarket-action-btn delete" onclick="deleteSupermarket('${supermarket.id}')" title="Excluir">
+                🗑️
+            </button>
+            <button class="supermarket-action-btn select" onclick="selectCurrentSupermarket('${supermarket.id}')" title="Selecionar como atual">
+                📍
+            </button>
+        </div>
+        ${supermarket.notes ? `<div class="supermarket-notes">${supermarket.notes}</div>` : ''}
+    `;
+    
+    return card;
+}
+
+async function deleteSupermarket(supermarketId) {
+    if (!confirm('Tem certeza que deseja excluir este supermercado? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    try {
+        await window.dbDeleteSupermarket(supermarketId);
+        console.log('🗑️ Supermercado excluído com sucesso');
+        loadSupermarkets();
+        updateSupermarketSelects();
+    } catch (error) {
+        console.error('Erro ao excluir supermercado:', error);
+        alert('Erro ao excluir supermercado. Tente novamente.');
+    }
+}
+
+function selectCurrentSupermarket(supermarketId) {
+    localStorage.setItem('listou-current-supermarket', supermarketId);
+    currentSupermarket = supermarketId;
+    updateSupermarketSelects();
+    console.log(`📍 Supermercado atual selecionado: ${supermarketId}`);
+}
+
+async function updateSupermarketSelects() {
+    try {
+        const supermarkets = await window.dbGetSupermarkets();
+        const selects = [
+            document.getElementById('main-supermarket-select'),
+            document.getElementById('current-supermarket-select')
+        ];
+        
+        selects.forEach(select => {
+            if (!select) return;
+            
+            // Preserva a primeira opção
+            const firstOption = select.querySelector('option');
+            select.innerHTML = '';
+            if (firstOption) {
+                select.appendChild(firstOption);
+            }
+            
+            supermarkets.forEach(supermarket => {
+                const option = document.createElement('option');
+                option.value = supermarket.id;
+                option.textContent = `${supermarket.name} - ${supermarket.location || 'Sem localização'}`;
+                
+                if (supermarket.id === currentSupermarket) {
+                    option.selected = true;
+                }
+                
+                select.appendChild(option);
+            });
+        });
+        
+    } catch (error) {
+        console.error('Erro ao atualizar selects de supermercado:', error);
+    }
+}
+
+// Funções auxiliares para seções
+async function loadAnalytics() {
+    console.log('📊 Carregando relatórios...');
+    // Implementar lógica de analytics aqui
+}
+
+async function loadTemplates() {
+    console.log('📋 Carregando templates...');
+    // Implementar lógica de templates aqui
+}
+
+// Torna funções globais para serem acessíveis do HTML
+window.openSupermarketModal = openSupermarketModal;
+window.closeSupermarketModal = closeSupermarketModal;
+window.deleteSupermarket = deleteSupermarket;
+window.selectCurrentSupermarket = selectCurrentSupermarket;
 
 // Carrega módulos e inicializa o app
 async function initApp() {
@@ -64,8 +593,35 @@ async function initApp() {
 
         console.log('✅ Módulos carregados com sucesso');
         
+        // Verifica tipo de compra salvo
+        currentPurchaseType = loadPurchaseType();
+        
+        // Carrega supermercado atual salvo
+        currentSupermarket = localStorage.getItem('listou-current-supermarket');
+        
         // Inicializa interface
         initInterface();
+        
+        // Configura listeners para tipo de compra
+        setupPurchaseTypeListeners();
+        
+        // Configura sidebar e navegação
+        setupSidebar();
+        setupSectionNavigation();
+        
+        // Configura gerenciamento de supermercados
+        setupSupermarkets();
+        
+        // Carrega supermercados nos selects
+        updateSupermarketSelects();
+        
+        // Se não há tipo salvo, mostra tela de seleção
+        if (!currentPurchaseType) {
+            showPurchaseTypeScreen();
+        } else {
+            hidePurchaseTypeScreen();
+            updatePurchaseTypeBadge();
+        }
         
     } catch (error) {
         console.error('❌ Erro na inicialização:', error);
@@ -189,21 +745,43 @@ async function refreshList() {
                 `R$ ${parseFloat(item.price).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 
                 'R$ --';
             
+            // Mapeamento de categorias para ícones
+            const categoryIcons = {
+                'frutas': '🍎',
+                'verduras': '🥬',
+                'carnes': '🥩',
+                'laticínios': '🥛',
+                'padaria': '🍞',
+                'limpeza': '🧽',
+                'higiene': '🧴',
+                'bebidas': '🥤',
+                'outros': '📦'
+            };
+            
+            const categoryIcon = categoryIcons[item.category] || '📦';
+            const quantity = item.qty && item.qty > 1 ? `${item.qty}x` : '';
+            const unit = item.unit || '';
+            const quantityText = quantity && unit ? `${quantity} ${unit}` : quantity || unit || '1x';
+            
             li.innerHTML = `
                 <div class="item-checkbox ${item.bought ? 'checked' : ''}" onclick="toggleItemBought(${item.id})">
                     <span class="checkmark">✓</span>
                 </div>
                 <div class="item-content">
-                    <span class="item-name">${item.name}</span>
+                    <span class="item-name" onclick="toggleItemBought(${item.id})" style="cursor: pointer;" title="Clique para marcar como comprado">${item.name}</span>
                     <div class="item-details">
-                        <span class="item-qty">Qtd: ${item.qty}</span>
+                        <span class="item-qty">Qtd: ${quantityText}</span>
                         <span class="item-price">${price}</span>
-                        <span class="item-category">${item.category || 'outros'}</span>
+                        <span class="item-category">${categoryIcon} ${item.category || 'outros'}</span>
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-icon" onclick="editItem(${item.id})" title="Editar">✏️</button>
-                    <button class="btn-icon" onclick="deleteItem(${item.id})" title="Remover">🗑️</button>
+                    <button class="btn-icon" onclick="editItem(${item.id})" title="Editar item">
+                        <span>✏️</span>
+                    </button>
+                    <button class="btn-icon" onclick="deleteItem(${item.id})" title="Remover item">
+                        <span>🗑️</span>
+                    </button>
                 </div>
             `;
             
@@ -323,7 +901,7 @@ function hideAutocomplete() {
 function setTheme(theme) {
     document.documentElement.classList.toggle('theme-light', theme === 'light');
     const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#0a0b0d');
+    if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#f8f9fa' : '#0b0f1a');
     localStorage.setItem('listou-theme', theme);
 }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listou - Lista de Compras</title>
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0b0f1a">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="styles.css">
     <!-- Biblioteca para leitura de QRCode -->
@@ -99,8 +99,59 @@
 
 
 
+    <!-- Purchase Type Selection Screen -->
+    <div id="purchase-type-screen" class="purchase-type-screen">
+        <div class="purchase-type-container">
+            <div class="logo-header">
+                <picture>
+                    <source srcset="logo.svg" type="image/svg+xml">
+                    <img src="logo.svg" alt="Logo Listou" class="intro-logo" width="80" height="80" loading="lazy">
+                </picture>
+                <h1 class="intro-title">Listou</h1>
+                <p class="intro-subtitle">Lista de compras inteligente</p>
+            </div>
+            
+            <div class="purchase-options">
+                <h2>Como deseja fazer suas compras?</h2>
+                
+                <div class="option-card" id="casual-purchase-option">
+                    <div class="option-icon">🛒</div>
+                    <h3>Compra Avulsa</h3>
+                    <p>Lista simples e rápida, sem análises ou relatórios</p>
+                    <ul class="option-features">
+                        <li>✓ Lista básica de compras</li>
+                        <li>✓ Adicionar e marcar itens</li>
+                        <li>✓ Controle de preços opcional</li>
+                        <li>✗ Sem relatórios detalhados</li>
+                    </ul>
+                    <button class="option-btn" data-type="casual">Escolher Avulsa</button>
+                </div>
+                
+                <div class="option-card featured" id="controlled-purchase-option">
+                    <div class="option-badge">Recomendado</div>
+                    <div class="option-icon">📊</div>
+                    <h3>Compra Controlada</h3>
+                    <p>Lista completa com análises e relatórios comparativos</p>
+                    <ul class="option-features">
+                        <li>✓ Todas as funcionalidades da Avulsa</li>
+                        <li>✓ Análise de gastos por período</li>
+                        <li>✓ Comparação entre supermercados</li>
+                        <li>✓ Sugestões inteligentes</li>
+                        <li>✓ Relatórios detalhados</li>
+                        <li>✓ Templates de listas</li>
+                    </ul>
+                    <button class="option-btn primary" data-type="controlled">Escolher Controlada</button>
+                </div>
+            </div>
+            
+            <div class="purchase-type-footer">
+                <p><small>Você pode alterar esta configuração a qualquer momento nas configurações</small></p>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
-    <main id="main-content" class="main-content">
+    <main id="main-content" class="main-content" style="display: none;">
         <!-- Main Section -->
         <section id="section-main" class="content-section active">
 
@@ -195,13 +246,15 @@
             </section>
 
             <section id="current-list-section" class="current-list-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="list-header">
                     <h3>🛒 Minha Lista de Compras</h3>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button id="finish-purchase-btn" class="header-btn primary" title="Finalizar compra e gerar relatório" style="background-color: #4CAF50; color: white;">
+                    <div class="list-header-actions">
+                        <button id="finish-purchase-btn" class="header-btn primary" title="Finalizar compra e gerar relatório">
                             ✅ Finalizar Compra
                         </button>
-                        <button id="clear-all-btn" class="header-btn" title="Limpar lista">🗑️</button>
+                        <button id="clear-all-btn" class="header-btn secondary" title="Limpar lista">
+                            🗑️ Limpar
+                        </button>
                     </div>
                 </div>
                 <ul id="shopping-list"></ul>
