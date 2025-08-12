@@ -628,91 +628,377 @@ async function updateSupermarketSelects() {
 
 // Funções auxiliares para seções
 async function loadAnalytics() {
-    console.log('📊 Carregando relatórios inteligentes...');
+    console.log('📊 Carregando seção de analytics...');
     
+    if (!analytics) {
+        console.warn('Analytics não inicializado');
+        showAnalyticsNoData();
+        return;
+    }
+
     try {
-        if (!analytics) {
-            console.warn('Analytics não inicializado ainda');
-            return;
-        }
-
-        // Carrega os novos relatórios super inteligentes
-        if (typeof analytics.updateSmartReports === 'function') {
-            analytics.updateSmartReports();
-            console.log('🧠 Relatórios inteligentes carregados com sucesso');
-        } else {
-            console.warn('Função updateSmartReports não encontrada');
-        }
-
-        // Configura event listeners para os controles de relatório
-        setupAnalyticsControls();
+        // Obtém período selecionado
+        const periodSelect = document.getElementById('analytics-period');
+        const period = periodSelect ? periodSelect.value : 'month';
+        
+        // Carrega dados do usuário
+        const userMetrics = analytics.getUserMetrics();
+        const insights = analytics.generatePersonalizedInsights();
+        const comparison = analytics.generateSupermarketComparisonReport();
+        const patterns = analytics.analyzeShoppingPatterns();
+        
+        // Atualiza dashboard principal
+        updateAnalyticsDashboard(userMetrics, period);
+        
+        // Atualiza comparação de supermercados
+        updateSupermarketComparison(comparison);
+        
+        // Atualiza análise de preços por produto
+        updatePriceVariations(comparison.bestDeals);
+        
+        // Atualiza análise por categorias
+        updateCategoryAnalysis(period);
+        
+        // Atualiza insights personalizados
+        updatePersonalizedInsights(insights);
+        
+        // Atualiza padrões de compra
+        updateShoppingPatterns(userMetrics, patterns);
+        
+        // Atualiza recomendações
+        updateRecommendations(comparison, userMetrics);
+        
+        // Configura event listeners
+        setupAnalyticsEventListeners();
+        
+        console.log('✅ Analytics carregado com sucesso');
         
     } catch (error) {
-        console.error('Erro ao carregar analytics:', error);
+        console.error('❌ Erro ao carregar analytics:', error);
+        showAnalyticsError();
     }
 }
 
-// Configura controles da seção de analytics
-function setupAnalyticsControls() {
-    // Filtro de período
+// Atualiza dashboard principal com métricas
+function updateAnalyticsDashboard(userMetrics, period) {
+    const periodFilter = getPeriodFilter(period);
+    const filteredPurchases = analytics.purchaseData.filter(periodFilter);
+    
+    // Total gasto
+    const totalSpent = filteredPurchases.reduce((sum, p) => sum + p.totalSpent, 0);
+    document.getElementById('total-spent-metric').textContent = `R$ ${totalSpent.toFixed(2)}`;
+    
+    // Total de compras
+    document.getElementById('total-purchases-metric').textContent = filteredPurchases.length.toString();
+    
+    // Cesta média
+    const avgBasket = filteredPurchases.length > 0 ? totalSpent / filteredPurchases.length : 0;
+    document.getElementById('avg-basket-metric').textContent = `R$ ${avgBasket.toFixed(2)}`;
+    
+    // Economia/Gasto extra
+    const totalSavings = filteredPurchases.reduce((sum, p) => sum + (p.savings || 0), 0);
+    const savingsElement = document.getElementById('savings-metric');
+    savingsElement.textContent = totalSavings >= 0 ? 
+        `R$ ${totalSavings.toFixed(2)}` : 
+        `R$ ${Math.abs(totalSavings).toFixed(2)}`;
+    
+    // Atualiza classe CSS para economia/gasto
+    const savingsCard = savingsElement.closest('.metric-card');
+    if (savingsCard) {
+        savingsCard.classList.toggle('positive', totalSavings >= 0);
+        savingsCard.classList.toggle('negative', totalSavings < 0);
+    }
+    
+    // Calcula tendências comparando com período anterior
+    updateTrends(period, filteredPurchases);
+}
+
+// Atualiza comparação entre supermercados
+function updateSupermarketComparison(comparison) {
+    const container = document.getElementById('supermarket-ranking');
+    
+    if (!comparison.supermarkets || comparison.supermarkets.length === 0) {
+        container.innerHTML = `
+            <div class="no-data">
+                <div class="no-data-icon">🏪</div>
+                <div class="no-data-title">Nenhum dado de supermercado</div>
+                <div class="no-data-message">Selecione supermercados ao fazer suas compras para ver comparações</div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    comparison.supermarkets.forEach((supermarket, index) => {
+        const rankClass = getSupermarketRankClass(index, comparison.supermarkets.length);
+        html += `
+            <div class="supermarket-rank-item ${rankClass}">
+                <div class="rank-position">#${index + 1}</div>
+                <div class="supermarket-info">
+                    <div class="supermarket-name">${supermarket.name}</div>
+                    <div class="supermarket-metrics">
+                        <span class="metric">Cesta média: R$ ${supermarket.avgBasketValue.toFixed(2)}</span>
+                        <span class="metric">${supermarket.totalPurchases} compras</span>
+                        ${supermarket.savings > 0 ? 
+                            `<span class="metric savings">Economia: R$ ${supermarket.savings.toFixed(2)}</span>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+                <div class="rank-badge ${rankClass}">${getRankLabel(index, comparison.supermarkets.length)}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Atualiza variações de preços por produto
+function updatePriceVariations(bestDeals) {
+    const container = document.getElementById('price-variations-container');
+    
+    if (!bestDeals || bestDeals.length === 0) {
+        container.innerHTML = `
+            <div class="no-data">
+                <div class="no-data-icon">🏷️</div>
+                <div class="no-data-title">Nenhuma variação de preços</div>
+                <div class="no-data-message">Compare preços do mesmo produto em supermercados diferentes</div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="price-variations-grid">';
+    bestDeals.slice(0, 5).forEach(deal => {
+        html += `
+            <div class="price-variation-item">
+                <div class="product-name">${deal.name}</div>
+                <div class="price-info">
+                    <div class="best-price">
+                        <span class="price">R$ ${deal.bestPrice.toFixed(2)}</span>
+                        <span class="store">${deal.bestStore}</span>
+                    </div>
+                    <div class="savings-info">
+                        <span class="savings">Economia: R$ ${deal.savings.toFixed(2)}</span>
+                        <span class="percentage">(${deal.savingsPercentage.toFixed(1)}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+// Atualiza insights personalizados
+function updatePersonalizedInsights(insights) {
+    const container = document.getElementById('personalized-insights');
+    
+    if (!insights || insights.length === 0) {
+        container.innerHTML = `
+            <div class="no-data">
+                <div class="no-data-icon">🤖</div>
+                <div class="no-data-title">Nenhum insight disponível</div>
+                <div class="no-data-message">Complete mais compras para receber insights personalizados</div>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    insights.forEach(insight => {
+        const impactClass = getImpactClass(insight.impact);
+        html += `
+            <div class="insight-card ${impactClass}">
+                <div class="insight-icon">${insight.icon}</div>
+                <div class="insight-content">
+                    <div class="insight-title">${insight.title}</div>
+                    <div class="insight-message">${insight.message}</div>
+                    ${insight.value ? `<div class="insight-value">R$ ${insight.value.toFixed(2)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Atualiza padrões de compra
+function updateShoppingPatterns(userMetrics, patterns) {
+    // Frequência de compras
+    const frequency = userMetrics.last30DaysPurchases > 0 ? 
+        (userMetrics.last30DaysPurchases / 4.33).toFixed(1) : '--';
+    document.getElementById('shopping-frequency').textContent = frequency;
+    
+    // Dia favorito
+    const favoriteDay = analytics.getFavoriteShoppingDay();
+    document.getElementById('favorite-day').textContent = favoriteDay || '--';
+    
+    // Categoria top
+    document.getElementById('top-category').textContent = userMetrics.favoriteCategory || '--';
+    
+    // Tempo médio
+    const avgTime = calculateAverageShoppingTime();
+    document.getElementById('avg-shopping-time').textContent = avgTime ? `${avgTime} min` : '--';
+}
+
+// Funções auxiliares para analytics
+function getPeriodFilter(period) {
+    const now = new Date();
+    let daysBack;
+    
+    switch (period) {
+        case 'week': daysBack = 7; break;
+        case 'month': daysBack = 30; break;
+        case 'quarter': daysBack = 90; break;
+        default: return () => true; // all
+    }
+    
+    return (purchase) => {
+        const purchaseDate = new Date(purchase.date);
+        const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+        return daysDiff <= daysBack;
+    };
+}
+
+function getSupermarketRankClass(index, total) {
+    const ratio = (index + 1) / total;
+    if (ratio <= 0.33) return 'best';
+    if (ratio <= 0.66) return 'good';
+    return 'average';
+}
+
+function getRankLabel(index, total) {
+    const ratio = (index + 1) / total;
+    if (ratio <= 0.33) return 'Melhor';
+    if (ratio <= 0.66) return 'Bom';
+    return 'Médio';
+}
+
+function getImpactClass(impact) {
+    switch (impact) {
+        case 'high': return 'high-impact';
+        case 'positive': return 'positive-impact';
+        case 'medium': return 'medium-impact';
+        default: return 'low-impact';
+    }
+}
+
+function calculateAverageShoppingTime() {
+    const purchasesWithTime = analytics.purchaseData.filter(p => p.shoppingDuration);
+    if (purchasesWithTime.length === 0) return null;
+    
+    const totalTime = purchasesWithTime.reduce((sum, p) => sum + p.shoppingDuration, 0);
+    return Math.round(totalTime / purchasesWithTime.length);
+}
+
+function updateTrends(period, currentPurchases) {
+    // Implementar comparação com período anterior para mostrar tendências
+    const prevPeriodPurchases = getPreviousPeriodPurchases(period);
+    
+    updateTrend('spending-trend', currentPurchases, prevPeriodPurchases, 'totalSpent');
+    updateTrend('purchases-trend', currentPurchases, prevPeriodPurchases, 'count');
+    updateTrend('basket-trend', currentPurchases, prevPeriodPurchases, 'avgBasket');
+}
+
+function updateTrend(elementId, current, previous, metric) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    let currentValue, previousValue;
+    
+    switch (metric) {
+        case 'totalSpent':
+            currentValue = current.reduce((sum, p) => sum + p.totalSpent, 0);
+            previousValue = previous.reduce((sum, p) => sum + p.totalSpent, 0);
+            break;
+        case 'count':
+            currentValue = current.length;
+            previousValue = previous.length;
+            break;
+        case 'avgBasket':
+            currentValue = current.length > 0 ? 
+                current.reduce((sum, p) => sum + p.totalSpent, 0) / current.length : 0;
+            previousValue = previous.length > 0 ? 
+                previous.reduce((sum, p) => sum + p.totalSpent, 0) / previous.length : 0;
+            break;
+    }
+    
+    if (previousValue === 0) {
+        element.textContent = '--';
+        return;
+    }
+    
+    const change = ((currentValue - previousValue) / previousValue) * 100;
+    const arrow = change > 0 ? '↗️' : change < 0 ? '↘️' : '➡️';
+    const changeClass = change > 0 ? 'trend-up' : change < 0 ? 'trend-down' : 'trend-stable';
+    
+    element.textContent = `${arrow} ${Math.abs(change).toFixed(1)}%`;
+    element.className = `metric-trend ${changeClass}`;
+}
+
+function getPreviousPeriodPurchases(period) {
+    const now = new Date();
+    let startDays, endDays;
+    
+    switch (period) {
+        case 'week': 
+            startDays = 14; 
+            endDays = 7; 
+            break;
+        case 'month': 
+            startDays = 60; 
+            endDays = 30; 
+            break;
+        case 'quarter': 
+            startDays = 180; 
+            endDays = 90; 
+            break;
+        default: 
+            return []; // all period doesn't have previous
+    }
+    
+    return analytics.purchaseData.filter(purchase => {
+        const purchaseDate = new Date(purchase.date);
+        const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+        return daysDiff >= endDays && daysDiff <= startDays;
+    });
+}
+
+function setupAnalyticsEventListeners() {
+    // Event listener para mudança de período
     const periodSelect = document.getElementById('analytics-period');
     if (periodSelect) {
-        periodSelect.addEventListener('change', (e) => {
-            console.log('Período alterado para:', e.target.value);
-            if (analytics && typeof analytics.updateSmartReports === 'function') {
-                analytics.updateSmartReports();
-            }
+        periodSelect.addEventListener('change', () => {
+            loadAnalytics();
         });
     }
-
-    // Botão de exportar relatório
-    const exportBtn = document.getElementById('export-report-btn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            exportSmartReport();
+    
+    // Event listener para atualizar relatórios
+    const refreshBtn = document.getElementById('refresh-analytics');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadAnalytics();
         });
     }
 }
 
-// Exporta relatório inteligente
-function exportSmartReport() {
-    try {
-        if (!analytics) {
-            alert('Sistema de analytics não disponível');
-            return;
-        }
+function showAnalyticsNoData() {
+    console.log('📊 Exibindo interface sem dados');
+}
 
-        const reportData = {
-            generatedAt: new Date().toISOString(),
-            period: document.getElementById('analytics-period')?.value || 'month',
-            summary: 'Relatório gerado pelo sistema inteligente do Listou',
-            data: analytics.purchaseData || []
-        };
+function showAnalyticsError() {
+    console.error('📊 Exibindo interface de erro');
+}
 
-        const dataStr = JSON.stringify(reportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = `listou-relatorio-${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-        
-        if (notifications) {
-            notifications.showSuccess('Relatório exportado com sucesso!');
-        } else {
-            alert('Relatório exportado com sucesso!');
-        }
-        
-        console.log('📄 Relatório exportado');
-        
-    } catch (error) {
-        console.error('Erro ao exportar relatório:', error);
-        if (notifications) {
-            notifications.showError('Erro ao exportar relatório');
-        } else {
-            alert('Erro ao exportar relatório');
-        }
-    }
+// Função placeholder para análise de categorias e recomendações
+function updateCategoryAnalysis(period) {
+    // Implementar análise por categorias
+}
+
+function updateRecommendations(comparison, userMetrics) {
+    // Implementar atualização de recomendações
 }
 
 async function loadTemplates() {
@@ -975,6 +1261,12 @@ async function handleAddItem() {
     if (!name) {
         console.log('Nome vazio, retornando');
         return;
+    }
+
+    // Marca início da sessão de compras se for o primeiro item
+    if (currentItems.length === 0 && !sessionStorage.getItem('shopping-start-time')) {
+        sessionStorage.setItem('shopping-start-time', Date.now().toString());
+        console.log('🕐 Sessão de compras iniciada');
     }
 
     console.log('Adicionando item:', name);
@@ -1572,50 +1864,88 @@ async function finishPurchase() {
             return;
         }
 
-        // Se é modo controlada, envia dados para analytics
+        // Calcula total gasto
+        const totalSpent = boughtItems.reduce((total, item) => {
+            const price = item.price || 0;
+            const qty = item.qty || 1;
+            return total + (price * qty);
+        }, 0);
+
+        // Calcula total previsto (todos os itens da lista)
+        const totalPlanned = currentItems.reduce((total, item) => {
+            const price = item.price || 0;
+            const qty = item.qty || 1;
+            return total + (price * qty);
+        }, 0);
+
+        // Se é modo controlada, envia dados completos para analytics
         if (currentPurchaseType === PURCHASE_TYPES.CONTROLLED && analytics) {
             console.log('📊 Enviando dados para relatórios (modo controlada)');
             
-            // Calcula total gasto
-            const totalSpent = boughtItems.reduce((total, item) => {
-                const price = item.price || 0;
-                const qty = item.qty || 1;
-                return total + (price * qty);
-            }, 0);
+            // Coleta dados adicionais para relatórios mais detalhados
+            const purchaseData = {
+                items: boughtItems,
+                totalSpent,
+                totalPlanned,
+                totalItems: currentItems.length,
+                boughtItems: boughtItems.length,
+                completion: (boughtItems.length / currentItems.length) * 100,
+                supermarket: currentSupermarket?.name || null,
+                supermarketId: currentSupermarket?.id || null,
+                timestamp: new Date().toISOString(),
+                weekday: new Date().toLocaleDateString('pt-BR', { weekday: 'long' }),
+                categories: getCategoriesBreakdown(boughtItems),
+                savings: totalPlanned - totalSpent,
+                averageItemPrice: totalSpent / boughtItems.length,
+                shoppingDuration: getShoppingDuration(),
+                paymentMethod: await getPaymentMethod(),
+                notes: await getShoppingNotes()
+            };
 
-            // Registra compra no sistema de analytics
-            const purchase = analytics.recordPurchase(boughtItems, totalSpent);
+            // Registra compra no sistema de analytics com dados enriquecidos
+            const purchase = analytics.recordPurchase(
+                boughtItems, 
+                totalSpent, 
+                null, 
+                currentSupermarket?.name,
+                purchaseData
+            );
             
-            // Atualiza relatórios inteligentes após registrar compra
-            if (typeof analytics.updateSmartReports === 'function') {
-                analytics.updateSmartReports();
-            }
+            // Exibe resumo detalhado
+            const completionPercent = Math.round(purchaseData.completion);
+            const savingsText = purchaseData.savings > 0 ? 
+                `Economia: R$ ${purchaseData.savings.toFixed(2)}` : 
+                `Gasto adicional: R$ ${Math.abs(purchaseData.savings).toFixed(2)}`;
+            
+            const message = `✅ Compra finalizada!\n\n` +
+                `💰 Total gasto: R$ ${totalSpent.toFixed(2)}\n` +
+                `📊 Completude: ${completionPercent}% (${boughtItems.length}/${currentItems.length} itens)\n` +
+                `💵 ${savingsText}\n` +
+                `🏪 Local: ${currentSupermarket?.name || 'Não informado'}\n\n` +
+                `📈 Dados salvos para relatórios detalhados.`;
             
             if (notifications) {
-                notifications.showSuccess(`Compra finalizada! Total: R$ ${totalSpent.toFixed(2)}. Dados salvos para relatórios.`);
+                notifications.showSuccess(message);
             } else {
-                alert(`Compra finalizada! Total: R$ ${totalSpent.toFixed(2)}. Dados salvos para relatórios.`);
+                alert(message);
             }
             
-            console.log('✅ Dados enviados para analytics:', purchase);
+            console.log('✅ Dados detalhados enviados para analytics:', purchase);
         } else {
             // Modo avulsa - apenas confirma sem salvar dados
             if (notifications) {
-                notifications.showSuccess(`Compra finalizada com ${boughtItems.length} item(ns)!`);
+                notifications.showSuccess(`Compra finalizada com ${boughtItems.length} item(ns)!\nTotal: R$ ${totalSpent.toFixed(2)}`);
             } else {
-                alert(`Compra finalizada com ${boughtItems.length} item(ns)!`);
+                alert(`Compra finalizada com ${boughtItems.length} item(ns)!\nTotal: R$ ${totalSpent.toFixed(2)}`);
             }
             
             console.log('🛒 Compra finalizada (modo avulsa) - dados não salvos');
         }
 
-        // Remove TODOS os itens da lista (comprados e não comprados)
-        for (const item of currentItems) {
+        // Remove itens comprados da lista
+        for (const item of boughtItems) {
             await window.dbDeleteItem(item.id);
         }
-
-        // Limpa array local
-        currentItems = [];
 
         // Atualiza a interface
         await refreshList();
@@ -1630,6 +1960,75 @@ async function finishPurchase() {
             alert('Erro ao finalizar compra. Tente novamente.');
         }
     }
+}
+
+// Funções auxiliares para coleta de dados detalhados da compra
+
+// Calcula breakdown por categorias
+function getCategoriesBreakdown(items) {
+    const categories = {};
+    items.forEach(item => {
+        const category = item.category || 'outros';
+        if (!categories[category]) {
+            categories[category] = {
+                count: 0,
+                total: 0,
+                items: []
+            };
+        }
+        categories[category].count++;
+        categories[category].total += (item.price || 0) * (item.qty || 1);
+        categories[category].items.push(item.name);
+    });
+    return categories;
+}
+
+// Calcula duração estimada da compra (baseado no timestamp de início)
+function getShoppingDuration() {
+    const startTime = sessionStorage.getItem('shopping-start-time');
+    if (startTime) {
+        const duration = Date.now() - parseInt(startTime);
+        sessionStorage.removeItem('shopping-start-time');
+        return Math.round(duration / 60000); // em minutos
+    }
+    return null;
+}
+
+// Pergunta forma de pagamento (opcional)
+async function getPaymentMethod() {
+    if (currentPurchaseType !== PURCHASE_TYPES.CONTROLLED) return null;
+    
+    return new Promise((resolve) => {
+        const methods = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX', 'Outro'];
+        const choice = prompt(
+            'Forma de pagamento (opcional):\n' +
+            methods.map((m, i) => `${i + 1}. ${m}`).join('\n') +
+            '\n\nDigite o número ou deixe em branco:'
+        );
+        
+        if (choice && choice.trim()) {
+            const index = parseInt(choice) - 1;
+            if (index >= 0 && index < methods.length) {
+                resolve(methods[index]);
+            } else {
+                resolve(choice.trim());
+            }
+        } else {
+            resolve(null);
+        }
+    });
+}
+
+// Pergunta observações sobre a compra (opcional)
+async function getShoppingNotes() {
+    if (currentPurchaseType !== PURCHASE_TYPES.CONTROLLED) return null;
+    
+    const notes = prompt(
+        'Observações sobre esta compra (opcional):\n' +
+        'Ex: "Promoções especiais", "Fila longa", "Produtos em falta", etc.'
+    );
+    
+    return notes && notes.trim() ? notes.trim() : null;
 }
 
 // Remove todos os itens da lista de compras

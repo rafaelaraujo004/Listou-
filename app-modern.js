@@ -422,6 +422,15 @@ function setupEventListeners(db) {
         itemInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addItemFromInput(db);
         });
+        
+        // Dica na primeira vez que focar no input
+        let firstFocus = true;
+        itemInput.addEventListener('focus', () => {
+            if (firstFocus) {
+                showSuccessToast('💡 Dica: Digite qualquer produto e clique nas sugestões para adicionar rapidamente!');
+                firstFocus = false;
+            }
+        });
     }
     
     if (addBtn) {
@@ -454,19 +463,191 @@ function showSuggestions(suggestions) {
         return;
     }
     
-    autocompleteList.innerHTML = suggestions.map(suggestion => 
-        `<div class="autocomplete-item" data-suggestion="${suggestion}">${suggestion}</div>`
+    autocompleteList.innerHTML = suggestions.map((suggestion, index) => 
+        `<div class="autocomplete-item" data-suggestion="${suggestion}" data-index="${index}" tabindex="0" title="Clique para adicionar à lista">
+            <span class="suggestion-text">📦 ${suggestion}</span>
+            <span class="suggestion-add-btn" title="Adicionar à lista">+</span>
+         </div>`
     ).join('');
     
     autocompleteList.style.display = 'block';
     
-    // Eventos de sugestões
+    // Eventos de sugestões - adicionar automaticamente à lista
     autocompleteList.querySelectorAll('.autocomplete-item').forEach(item => {
-        item.addEventListener('click', () => {
-            document.getElementById('item-input').value = item.dataset.suggestion;
-            autocompleteList.style.display = 'none';
+        // Evento de clique
+        item.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const suggestionText = item.dataset.suggestion;
+            console.log('� Adicionando sugestão à lista:', suggestionText);
+            
+            // Visual feedback - mostrar que está sendo processado
+            item.style.opacity = '0.6';
+            item.style.pointerEvents = 'none';
+            
+            try {
+                // Adicionar diretamente à lista
+                await addSuggestionToList(suggestionText);
+                
+                // Feedback visual de sucesso
+                item.style.backgroundColor = '#22c55e';
+                item.style.color = 'white';
+                setTimeout(() => {
+                    // Limpar input e esconder sugestões
+                    const itemInput = document.getElementById('item-input');
+                    if (itemInput) {
+                        itemInput.value = '';
+                    }
+                    autocompleteList.style.display = 'none';
+                }, 300);
+                
+            } catch (error) {
+                // Restaurar estado em caso de erro
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+                item.style.backgroundColor = '#fee2e2';
+                item.style.color = '#dc2626';
+                
+                setTimeout(() => {
+                    item.style.backgroundColor = '';
+                    item.style.color = '';
+                }, 2000);
+            }
+        });
+        
+        // Evento de teclado (Enter)
+        item.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const suggestionText = item.dataset.suggestion;
+                console.log('⌨️ Sugestão selecionada via Enter:', suggestionText);
+                
+                await addSuggestionToList(suggestionText);
+                
+                const itemInput = document.getElementById('item-input');
+                if (itemInput) {
+                    itemInput.value = '';
+                    itemInput.focus();
+                }
+                autocompleteList.style.display = 'none';
+            }
         });
     });
+    
+    // Navegação por teclado nas sugestões
+    setupSuggestionNavigation(autocompleteList);
+}
+
+// Função para navegação por teclado nas sugestões
+function setupSuggestionNavigation(autocompleteList) {
+    const itemInput = document.getElementById('item-input');
+    if (!itemInput) return;
+    
+    let currentSuggestionIndex = -1;
+    const suggestions = autocompleteList.querySelectorAll('.autocomplete-item');
+    
+    // Remover event listeners anteriores para evitar duplicação
+    itemInput.removeEventListener('keydown', handleSuggestionNavigation);
+    
+    function handleSuggestionNavigation(e) {
+        if (autocompleteList.style.display === 'none' || suggestions.length === 0) return;
+        
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                currentSuggestionIndex = Math.min(currentSuggestionIndex + 1, suggestions.length - 1);
+                updateSuggestionHighlight();
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                currentSuggestionIndex = Math.max(currentSuggestionIndex - 1, -1);
+                updateSuggestionHighlight();
+                break;
+                
+            case 'Enter':
+                e.preventDefault();
+                if (currentSuggestionIndex >= 0 && currentSuggestionIndex < suggestions.length) {
+                    const selectedSuggestion = suggestions[currentSuggestionIndex];
+                    selectedSuggestion.click();
+                }
+                break;
+                
+            case 'Escape':
+                autocompleteList.style.display = 'none';
+                currentSuggestionIndex = -1;
+                break;
+        }
+    }
+    
+    function updateSuggestionHighlight() {
+        suggestions.forEach((suggestion, index) => {
+            suggestion.classList.toggle('active', index === currentSuggestionIndex);
+        });
+        
+        if (currentSuggestionIndex >= 0) {
+            suggestions[currentSuggestionIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+    
+    itemInput.addEventListener('keydown', handleSuggestionNavigation);
+}
+
+// Nova função para adicionar sugestão diretamente à lista
+async function addSuggestionToList(suggestionText) {
+    console.log('🛒 Processando adição de:', suggestionText);
+    
+    try {
+        // Importar módulo db
+        const db = await import('./db.js');
+        
+        // Verificar se o item já existe na lista
+        const existingItems = await db.dbGetItems();
+        const itemExists = existingItems.some(item => 
+            item.name.toLowerCase() === suggestionText.toLowerCase() && !item.bought
+        );
+        
+        if (itemExists) {
+            showSuccessToast(`"${suggestionText}" já está na lista`);
+            console.log('⚠️ Item já existe na lista:', suggestionText);
+            return;
+        }
+        
+        const category = categorizeItem(suggestionText);
+        
+        const newItem = {
+            name: suggestionText,
+            category: category,
+            qty: 1,
+            bought: false,
+            addedAt: new Date().toISOString(),
+            priority: 'normal'
+        };
+        
+        // Adicionar item ao banco de dados
+        await db.dbAddItem(newItem);
+        
+        // Atualizar a lista de itens atual
+        currentItems = await db.dbGetItems();
+        
+        // Feedback de sucesso
+        showSuccessToast(`✅ "${suggestionText}" adicionado à lista`);
+        
+        // Atualizar interface
+        await refreshList(db);
+        
+        // Registrar analytics se disponível
+        if (analytics) {
+            analytics.trackItemAdd(newItem);
+        }
+        
+        console.log('✅ Item adicionado com sucesso:', newItem);
+        
+    } catch (error) {
+        console.error('❌ Erro ao adicionar sugestão à lista:', error);
+        showError(`Erro ao adicionar "${suggestionText}" à lista`);
+        throw error; // Re-throw para que o caller possa lidar com o erro
+    }
 }
 
 async function addItemFromInput(db) {
@@ -889,3 +1070,62 @@ window.testSidebarDirect = function() {
         });
     }
 };
+
+// ===== FUNÇÃO DE TESTE PARA SUGESTÕES =====
+window.testSuggestions = function() {
+    console.log('🧪 Teste das sugestões automáticas...');
+    
+    const itemInput = document.getElementById('item-input');
+    if (!itemInput) {
+        console.error('❌ Input não encontrado!');
+        alert('Erro: Campo de entrada não encontrado!');
+        return;
+    }
+    
+    // Focar no input
+    itemInput.focus();
+    
+    // Simular digitação para mostrar sugestões
+    const testWords = ['ban', 'arr', 'car', 'lei'];
+    const randomWord = testWords[Math.floor(Math.random() * testWords.length)];
+    
+    itemInput.value = randomWord;
+    itemInput.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    console.log(`✅ Simulando digitação de "${randomWord}"`);
+    alert(`Teste iniciado! Digite "${randomWord}" e veja as sugestões aparecerem.\n\nClique em qualquer sugestão para adicionar automaticamente à lista!`);
+    
+    setTimeout(() => {
+        const autocompleteList = document.getElementById('autocomplete-list');
+        if (autocompleteList && autocompleteList.style.display !== 'none') {
+            const suggestions = autocompleteList.querySelectorAll('.autocomplete-item');
+            console.log('✅ Lista de sugestões está visível');
+            console.log(`📝 ${suggestions.length} sugestões encontradas`);
+            
+            if (suggestions.length > 0) {
+                // Destacar a primeira sugestão como exemplo
+                suggestions[0].style.border = '2px solid #3b82f6';
+                suggestions[0].style.animation = 'pulse 2s infinite';
+                
+                console.log('� Dica: Clique na primeira sugestão destacada!');
+            }
+        } else {
+            console.log('❌ Lista de sugestões não está visível');
+            alert('Nenhuma sugestão encontrada. Tente digitar uma palavra como "banana", "arroz" ou "carne".');
+        }
+    }, 500);
+};
+
+// Adicionar animação pulse no CSS se não existir
+if (!document.getElementById('pulse-animation')) {
+    const style = document.createElement('style');
+    style.id = 'pulse-animation';
+    style.textContent = `
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    `;
+    document.head.appendChild(style);
+}

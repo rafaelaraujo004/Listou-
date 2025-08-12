@@ -106,7 +106,7 @@ export class AnalyticsManager {
     }
 
     // Registra uma compra para análise
-    recordPurchase(items, totalSpent, location = null, supermarket = null) {
+    recordPurchase(items, totalSpent, location = null, supermarket = null, additionalData = null) {
         const purchase = {
             id: Date.now(),
             date: new Date().toISOString(),
@@ -115,14 +115,38 @@ export class AnalyticsManager {
                 category: item.category,
                 quantity: item.qty,
                 unitPrice: item.price || 0,
-                totalPrice: (item.price || 0) * item.qty
+                totalPrice: (item.price || 0) * item.qty,
+                unit: item.unit || 'unid'
             })),
             totalSpent,
             location,
             supermarket: supermarket || localStorage.getItem('listou-current-supermarket'),
             dayOfWeek: new Date().getDay(),
             month: new Date().getMonth(),
-            season: this.getSeason()
+            season: this.getSeason(),
+            
+            // Dados adicionais detalhados para relatórios mais ricos
+            ...(additionalData && {
+                totalPlanned: additionalData.totalPlanned,
+                totalItems: additionalData.totalItems,
+                boughtItems: additionalData.boughtItems,
+                completion: additionalData.completion,
+                supermarketId: additionalData.supermarketId,
+                weekday: additionalData.weekday,
+                categories: additionalData.categories,
+                savings: additionalData.savings,
+                averageItemPrice: additionalData.averageItemPrice,
+                shoppingDuration: additionalData.shoppingDuration,
+                paymentMethod: additionalData.paymentMethod,
+                notes: additionalData.notes,
+                deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    screenSize: `${screen.width}x${screen.height}`,
+                    viewport: `${window.innerWidth}x${window.innerHeight}`
+                }
+            })
         };
 
         this.purchaseData.unshift(purchase);
@@ -134,6 +158,10 @@ export class AnalyticsManager {
         
         this.saveAnalyticsData();
         this.updateSupermarketPricing(purchase);
+        
+        // Atualiza benchmarks do usuário
+        this.updateUserBenchmarks(purchase);
+        
         return purchase;
     }
 
@@ -194,6 +222,89 @@ export class AnalyticsManager {
         });
 
         this.saveMarketData();
+    }
+
+    // Atualiza benchmarks do usuário baseado nos dados de compra
+    updateUserBenchmarks(purchase) {
+        const now = new Date();
+        const lastUpdate = new Date(this.userBenchmarks.lastUpdated);
+        const daysSinceUpdate = Math.floor((now - lastUpdate) / (1000 * 60 * 60 * 24));
+        
+        // Atualiza benchmarks apenas se passou pelo menos 1 dia
+        if (daysSinceUpdate >= 1) {
+            // Calcula médias dos últimos 30 dias
+            const last30Days = this.purchaseData.filter(p => {
+                const purchaseDate = new Date(p.date);
+                const daysAgo = Math.floor((now - purchaseDate) / (1000 * 60 * 60 * 24));
+                return daysAgo <= 30;
+            });
+
+            if (last30Days.length > 0) {
+                // Calcula gastos mensais médios
+                const totalSpent = last30Days.reduce((sum, p) => sum + p.totalSpent, 0);
+                const avgMonthlyGroceries = (totalSpent / last30Days.length) * 4.33; // aprox 4.33 semanas por mês
+
+                // Calcula itens por compra
+                const totalItems = last30Days.reduce((sum, p) => sum + (p.boughtItems || p.items.length), 0);
+                const avgItemsPerPurchase = totalItems / last30Days.length;
+
+                // Calcula frequência de compras (compras por semana)
+                const weeksInPeriod = Math.min(30, daysSinceUpdate) / 7;
+                const avgPurchaseFrequency = last30Days.length / weeksInPeriod;
+
+                // Calcula preço médio por item
+                const avgPricePerItem = totalSpent / totalItems;
+
+                // Atualiza benchmarks
+                this.userBenchmarks = {
+                    avgMonthlyGroceries: Math.round(avgMonthlyGroceries * 100) / 100,
+                    avgItemsPerPurchase: Math.round(avgItemsPerPurchase * 100) / 100,
+                    avgPurchaseFrequency: Math.round(avgPurchaseFrequency * 100) / 100,
+                    avgPricePerItem: Math.round(avgPricePerItem * 100) / 100,
+                    lastUpdated: now.toISOString(),
+                    totalPurchases: this.purchaseData.length,
+                    dataQuality: this.calculateDataQuality(last30Days)
+                };
+
+                this.saveUserBenchmarks();
+                console.log('📊 Benchmarks do usuário atualizados:', this.userBenchmarks);
+            }
+        }
+    }
+
+    // Calcula qualidade dos dados coletados
+    calculateDataQuality(purchases) {
+        if (purchases.length === 0) return 0;
+
+        let qualityScore = 0;
+        const factors = [];
+
+        // Fator 1: Quantidade de compras (mais dados = melhor)
+        const purchasesFactor = Math.min(purchases.length / 10, 1); // ideal: 10+ compras
+        factors.push(purchasesFactor * 0.3);
+
+        // Fator 2: Completude dos dados de preço
+        const itemsWithPrice = purchases
+            .flatMap(p => p.items)
+            .filter(item => item.unitPrice > 0);
+        const totalItems = purchases.flatMap(p => p.items);
+        const priceFactor = totalItems.length > 0 ? itemsWithPrice.length / totalItems.length : 0;
+        factors.push(priceFactor * 0.3);
+
+        // Fator 3: Informações de supermercado
+        const purchasesWithSupermarket = purchases.filter(p => p.supermarket);
+        const supermarketFactor = purchasesWithSupermarket.length / purchases.length;
+        factors.push(supermarketFactor * 0.2);
+
+        // Fator 4: Dados adicionais (notas, forma de pagamento, etc.)
+        const purchasesWithExtraData = purchases.filter(p => 
+            p.paymentMethod || p.notes || p.shoppingDuration
+        );
+        const extraDataFactor = purchasesWithExtraData.length / purchases.length;
+        factors.push(extraDataFactor * 0.2);
+
+        qualityScore = factors.reduce((sum, factor) => sum + factor, 0);
+        return Math.round(qualityScore * 100);
     }
 
     // Compara preços entre supermercados
@@ -287,10 +398,346 @@ export class AnalyticsManager {
     generateSupermarketComparisonReport() {
         const comparison = this.compareSupermarketPrices();
         const bestPrices = this.getBestPricesByItem();
-        const userMetrics = this.getUserMetrics();
+        
+        return {
+            supermarkets: comparison,
+            bestDeals: bestPrices,
+            recommendations: this.generateSupermarketRecommendations(comparison, bestPrices),
+            summary: this.generateComparisonSummary(comparison, bestPrices)
+        };
+    }
+
+    // Gera recomendações baseadas nos dados do usuário
+    generateSupermarketRecommendations(supermarkets, bestPrices) {
+        const recommendations = [];
+
+        if (supermarkets.length >= 2) {
+            const cheapest = supermarkets[0];
+            const mostExpensive = supermarkets[supermarkets.length - 1];
+            
+            recommendations.push({
+                type: 'savings',
+                title: 'Economia Potencial',
+                message: `Comprando no ${cheapest.name} ao invés do ${mostExpensive.name}, você pode economizar em média R$ ${(mostExpensive.avgBasketValue - cheapest.avgBasketValue).toFixed(2)} por compra.`,
+                impact: 'high',
+                icon: '💰'
+            });
+        }
+
+        // Recomendações por produto
+        if (bestPrices.length > 0) {
+            const topSaving = bestPrices[0];
+            recommendations.push({
+                type: 'product',
+                title: 'Maior Economia por Produto',
+                message: `${topSaving.name} está R$ ${topSaving.savings.toFixed(2)} mais barato no ${topSaving.bestStore} (${topSaving.savingsPercentage.toFixed(1)}% de economia).`,
+                impact: 'medium',
+                icon: '🏷️'
+            });
+        }
+
+        // Análise de padrões
+        const patterns = this.analyzeShoppingPatterns();
+        if (patterns.length > 0) {
+            recommendations.push(...patterns);
+        }
+
+        return recommendations;
+    }
+
+    // Gera resumo executivo da comparação
+    generateComparisonSummary(supermarkets, bestPrices) {
+        if (supermarkets.length === 0) {
+            return {
+                totalSupermarkets: 0,
+                message: 'Adicione preços aos itens para gerar comparações entre supermercados.'
+            };
+        }
+
+        const totalSavings = bestPrices.reduce((sum, item) => sum + item.savings, 0);
+        const avgSavingsPercentage = bestPrices.length > 0 ? 
+            bestPrices.reduce((sum, item) => sum + item.savingsPercentage, 0) / bestPrices.length : 0;
 
         return {
-            reportType: 'supermarket-comparison',
+            totalSupermarkets: supermarkets.length,
+            totalPotentialSavings: totalSavings,
+            avgSavingsPercentage: avgSavingsPercentage,
+            bestOverallSupermarket: supermarkets[0]?.name,
+            message: `Analisando ${supermarkets.length} supermercados, você pode economizar até R$ ${totalSavings.toFixed(2)} escolhendo onde comprar cada produto.`
+        };
+    }
+
+    // Analisa padrões de compra do usuário
+    analyzeShoppingPatterns() {
+        const patterns = [];
+        const recentPurchases = this.purchaseData.slice(0, 10); // Últimas 10 compras
+
+        if (recentPurchases.length < 3) {
+            return patterns;
+        }
+
+        // Padrão de dias da semana
+        const dayPattern = this.analyzeDayOfWeekPattern(recentPurchases);
+        if (dayPattern) {
+            patterns.push(dayPattern);
+        }
+
+        // Padrão de categorias
+        const categoryPattern = this.analyzeCategoryPattern(recentPurchases);
+        if (categoryPattern) {
+            patterns.push(categoryPattern);
+        }
+
+        // Padrão de gastos
+        const spendingPattern = this.analyzeSpendingPattern(recentPurchases);
+        if (spendingPattern) {
+            patterns.push(spendingPattern);
+        }
+
+        // Padrão de tempo de compra
+        const timePattern = this.analyzeTimePattern(recentPurchases);
+        if (timePattern) {
+            patterns.push(timePattern);
+        }
+
+        return patterns;
+    }
+
+    // Analisa padrão de dias da semana
+    analyzeDayOfWeekPattern(purchases) {
+        const dayCount = {};
+        purchases.forEach(p => {
+            const day = p.weekday || new Date(p.date).toLocaleDateString('pt-BR', { weekday: 'long' });
+            dayCount[day] = (dayCount[day] || 0) + 1;
+        });
+
+        const mostCommonDay = Object.entries(dayCount)
+            .sort((a, b) => b[1] - a[1])[0];
+
+        if (mostCommonDay && mostCommonDay[1] >= 3) {
+            return {
+                type: 'pattern',
+                title: 'Padrão de Compras',
+                message: `Você costuma fazer compras às ${mostCommonDay[0]}s. Considere verificar se há promoções específicas neste dia.`,
+                impact: 'low',
+                icon: '📅'
+            };
+        }
+        return null;
+    }
+
+    // Analisa padrão de categorias mais compradas
+    analyzeCategoryPattern(purchases) {
+        const categoryCount = {};
+        purchases.forEach(p => {
+            if (p.categories) {
+                Object.keys(p.categories).forEach(cat => {
+                    categoryCount[cat] = (categoryCount[cat] || 0) + p.categories[cat].count;
+                });
+            }
+        });
+
+        const topCategory = Object.entries(categoryCount)
+            .sort((a, b) => b[1] - a[1])[0];
+
+        if (topCategory && topCategory[1] >= 5) {
+            return {
+                type: 'pattern',
+                title: 'Categoria Favorita',
+                message: `Você compra frequentemente produtos de ${topCategory[0]}. Considere buscar supermercados com melhores preços nesta categoria.`,
+                impact: 'medium',
+                icon: '🛒'
+            };
+        }
+        return null;
+    }
+
+    // Analisa padrão de gastos
+    analyzeSpendingPattern(purchases) {
+        const amounts = purchases.map(p => p.totalSpent);
+        const avg = amounts.reduce((sum, a) => sum + a, 0) / amounts.length;
+        const lastThree = amounts.slice(0, 3);
+        const lastThreeAvg = lastThree.reduce((sum, a) => sum + a, 0) / lastThree.length;
+
+        const variation = ((lastThreeAvg - avg) / avg) * 100;
+
+        if (Math.abs(variation) > 20) {
+            const trend = variation > 0 ? 'aumentaram' : 'diminuíram';
+            const emoji = variation > 0 ? '📈' : '📉';
+            
+            return {
+                type: 'trend',
+                title: 'Tendência de Gastos',
+                message: `Seus gastos ${trend} ${Math.abs(variation).toFixed(1)}% nas últimas compras. Valor médio atual: R$ ${lastThreeAvg.toFixed(2)}.`,
+                impact: variation > 0 ? 'high' : 'medium',
+                icon: emoji
+            };
+        }
+        return null;
+    }
+
+    // Analisa padrão de tempo de compra
+    analyzeTimePattern(purchases) {
+        const durations = purchases
+            .filter(p => p.shoppingDuration)
+            .map(p => p.shoppingDuration);
+
+        if (durations.length >= 3) {
+            const avgDuration = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+            const lastDuration = durations[0];
+
+            if (lastDuration > avgDuration * 1.5) {
+                return {
+                    type: 'efficiency',
+                    title: 'Tempo de Compra',
+                    message: `Sua última compra demorou ${lastDuration} minutos, acima da média de ${avgDuration.toFixed(0)} min. Considere fazer uma lista mais organizada.`,
+                    impact: 'low',
+                    icon: '⏱️'
+                };
+            }
+        }
+        return null;
+    }
+
+    // Gera insights personalizados para o usuário
+    generatePersonalizedInsights() {
+        const insights = [];
+
+        // Insight de economia mensal
+        const monthlyInsight = this.generateMonthlySavingsInsight();
+        if (monthlyInsight) insights.push(monthlyInsight);
+
+        // Insight de comparação com benchmarks
+        const benchmarkInsight = this.generateBenchmarkInsight();
+        if (benchmarkInsight) insights.push(benchmarkInsight);
+
+        // Insight de produtos mais caros
+        const expensiveProductsInsight = this.generateExpensiveProductsInsight();
+        if (expensiveProductsInsight) insights.push(expensiveProductsInsight);
+
+        // Insight de eficiência de compras
+        const efficiencyInsight = this.generateEfficiencyInsight();
+        if (efficiencyInsight) insights.push(efficiencyInsight);
+
+        return insights;
+    }
+
+    // Insight de economia mensal
+    generateMonthlySavingsInsight() {
+        const lastMonth = this.purchaseData.filter(p => {
+            const purchaseDate = new Date(p.date);
+            const now = new Date();
+            const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+            return daysDiff <= 30;
+        });
+
+        if (lastMonth.length > 0) {
+            const totalSpent = lastMonth.reduce((sum, p) => sum + p.totalSpent, 0);
+            const potentialSavings = lastMonth.reduce((sum, p) => sum + (p.savings || 0), 0);
+            const savingsPercentage = totalSpent > 0 ? (potentialSavings / totalSpent) * 100 : 0;
+
+            return {
+                type: 'monthly',
+                title: 'Economia no Mês',
+                value: potentialSavings,
+                message: `No último mês você gastou R$ ${totalSpent.toFixed(2)} e ${potentialSavings > 0 ? `economizou R$ ${potentialSavings.toFixed(2)}` : `gastou R$ ${Math.abs(potentialSavings).toFixed(2)} a mais que o planejado`}.`,
+                percentage: Math.abs(savingsPercentage),
+                trend: potentialSavings > 0 ? 'positive' : 'negative',
+                icon: potentialSavings > 0 ? '💰' : '⚠️'
+            };
+        }
+        return null;
+    }
+
+    // Insight de comparação com benchmarks
+    generateBenchmarkInsight() {
+        const userAvg = this.userBenchmarks.avgMonthlyGroceries;
+        const nationalAvg = 600; // Média nacional brasileira
+
+        const difference = userAvg - nationalAvg;
+        const percentage = (Math.abs(difference) / nationalAvg) * 100;
+
+        if (percentage > 10) {
+            const comparison = difference > 0 ? 'acima' : 'abaixo';
+            const emoji = difference > 0 ? '📊' : '🎯';
+            
+            return {
+                type: 'benchmark',
+                title: 'Comparação Nacional',
+                message: `Seus gastos mensais (R$ ${userAvg.toFixed(2)}) estão ${percentage.toFixed(1)}% ${comparison} da média nacional (R$ ${nationalAvg}).`,
+                impact: difference > 0 ? 'medium' : 'positive',
+                icon: emoji
+            };
+        }
+        return null;
+    }
+
+    // Insight de produtos mais caros
+    generateExpensiveProductsInsight() {
+        const recentPurchases = this.purchaseData.slice(0, 5);
+        if (recentPurchases.length === 0) return null;
+
+        const allItems = recentPurchases.flatMap(p => p.items);
+        const expensiveItems = allItems
+            .filter(item => item.unitPrice > 20)
+            .sort((a, b) => b.unitPrice - a.unitPrice)
+            .slice(0, 3);
+
+        if (expensiveItems.length > 0) {
+            const topExpensive = expensiveItems[0];
+            return {
+                type: 'products',
+                title: 'Produtos Mais Caros',
+                message: `${topExpensive.name} foi seu item mais caro recente (R$ ${topExpensive.unitPrice.toFixed(2)}). Compare preços em diferentes supermercados.`,
+                impact: 'medium',
+                icon: '💎'
+            };
+        }
+        return null;
+    }
+
+    // Insight de eficiência de compras
+    // Insight de eficiência de compras
+    generateEfficiencyInsight() {
+        const recentPurchases = this.purchaseData.slice(0, 10);
+        if (recentPurchases.length < 3) return null;
+
+        const completionRates = recentPurchases
+            .filter(p => p.completion)
+            .map(p => p.completion);
+
+        if (completionRates.length >= 3) {
+            const avgCompletion = completionRates.reduce((sum, c) => sum + c, 0) / completionRates.length;
+            
+            if (avgCompletion < 80) {
+                return {
+                    type: 'efficiency',
+                    title: 'Eficiência das Listas',
+                    message: `Você completa em média ${avgCompletion.toFixed(1)}% dos itens das suas listas. Considere revisar sua estratégia de planejamento.`,
+                    impact: 'medium',
+                    icon: '📋'
+                };
+            } else if (avgCompletion > 95) {
+                return {
+                    type: 'efficiency',
+                    title: 'Excelente Planejamento!',
+                    message: `Você completa ${avgCompletion.toFixed(1)}% dos itens das suas listas. Seu planejamento está excelente!`,
+                    impact: 'positive',
+                    icon: '🎯'
+                };
+            }
+        }
+        return null;
+    }
+
+    // Gera relatório completo com comparativos e insights
+    generateDetailedReport() {
+        const userMetrics = this.getUserMetrics();
+        const comparison = this.compareSupermarketPrices();
+        const bestPrices = this.getBestPricesByItem();
+
+        return {
+            reportType: 'detailed-analysis',
             generatedAt: new Date().toISOString(),
             summary: {
                 totalSupermarkets: comparison.length,
@@ -359,6 +806,96 @@ export class AnalyticsManager {
         }
 
         return insights;
+    }
+
+    // Obtém métricas consolidadas do usuário
+    getUserMetrics() {
+        const last30Days = this.purchaseData.filter(p => {
+            const purchaseDate = new Date(p.date);
+            const now = new Date();
+            const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+            return daysDiff <= 30;
+        });
+
+        const last90Days = this.purchaseData.filter(p => {
+            const purchaseDate = new Date(p.date);
+            const now = new Date();
+            const daysDiff = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+            return daysDiff <= 90;
+        });
+
+        return {
+            totalPurchases: this.purchaseData.length,
+            last30DaysPurchases: last30Days.length,
+            last90DaysPurchases: last90Days.length,
+            avgMonthlySpent: last30Days.length > 0 ? 
+                (last30Days.reduce((sum, p) => sum + p.totalSpent, 0) / last30Days.length) * 4.33 : 0,
+            avgBasketSize: this.purchaseData.length > 0 ?
+                this.purchaseData.reduce((sum, p) => sum + (p.boughtItems || p.items.length), 0) / this.purchaseData.length : 0,
+            avgItemPrice: this.calculateAverageItemPrice(),
+            mostUsedSupermarket: this.getMostUsedSupermarket(),
+            favoriteCategory: this.getFavoriteCategory(),
+            dataQuality: this.userBenchmarks.dataQuality || 0
+        };
+    }
+
+    // Calcula preço médio dos itens
+    calculateAverageItemPrice() {
+        const allItems = this.purchaseData.flatMap(p => p.items);
+        const itemsWithPrice = allItems.filter(item => item.unitPrice > 0);
+        
+        if (itemsWithPrice.length === 0) return 0;
+        
+        return itemsWithPrice.reduce((sum, item) => sum + item.unitPrice, 0) / itemsWithPrice.length;
+    }
+
+    // Obtém supermercado mais usado
+    getMostUsedSupermarket() {
+        const supermarketCount = {};
+        this.purchaseData.forEach(p => {
+            if (p.supermarket) {
+                supermarketCount[p.supermarket] = (supermarketCount[p.supermarket] || 0) + 1;
+            }
+        });
+
+        const entries = Object.entries(supermarketCount);
+        if (entries.length === 0) return null;
+        
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    // Obtém categoria favorita
+    getFavoriteCategory() {
+        const categoryCount = {};
+        this.purchaseData.forEach(p => {
+            if (p.categories) {
+                Object.entries(p.categories).forEach(([cat, data]) => {
+                    categoryCount[cat] = (categoryCount[cat] || 0) + data.count;
+                });
+            }
+        });
+
+        const entries = Object.entries(categoryCount);
+        if (entries.length === 0) return null;
+        
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
+    }
+
+    // Obtém dia da semana favorito para compras
+    getFavoriteShoppingDay() {
+        const dayCount = {};
+        const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        
+        this.purchaseData.forEach(p => {
+            const date = new Date(p.date);
+            const dayName = dayNames[date.getDay()];
+            dayCount[dayName] = (dayCount[dayName] || 0) + 1;
+        });
+
+        const entries = Object.entries(dayCount);
+        if (entries.length === 0) return null;
+        
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
     }
 
     getSeason() {
