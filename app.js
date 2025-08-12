@@ -628,8 +628,91 @@ async function updateSupermarketSelects() {
 
 // Funções auxiliares para seções
 async function loadAnalytics() {
-    console.log('📊 Carregando relatórios...');
-    // Implementar lógica de analytics aqui
+    console.log('📊 Carregando relatórios inteligentes...');
+    
+    try {
+        if (!analytics) {
+            console.warn('Analytics não inicializado ainda');
+            return;
+        }
+
+        // Carrega os novos relatórios super inteligentes
+        if (typeof analytics.updateSmartReports === 'function') {
+            analytics.updateSmartReports();
+            console.log('🧠 Relatórios inteligentes carregados com sucesso');
+        } else {
+            console.warn('Função updateSmartReports não encontrada');
+        }
+
+        // Configura event listeners para os controles de relatório
+        setupAnalyticsControls();
+        
+    } catch (error) {
+        console.error('Erro ao carregar analytics:', error);
+    }
+}
+
+// Configura controles da seção de analytics
+function setupAnalyticsControls() {
+    // Filtro de período
+    const periodSelect = document.getElementById('analytics-period');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', (e) => {
+            console.log('Período alterado para:', e.target.value);
+            if (analytics && typeof analytics.updateSmartReports === 'function') {
+                analytics.updateSmartReports();
+            }
+        });
+    }
+
+    // Botão de exportar relatório
+    const exportBtn = document.getElementById('export-report-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            exportSmartReport();
+        });
+    }
+}
+
+// Exporta relatório inteligente
+function exportSmartReport() {
+    try {
+        if (!analytics) {
+            alert('Sistema de analytics não disponível');
+            return;
+        }
+
+        const reportData = {
+            generatedAt: new Date().toISOString(),
+            period: document.getElementById('analytics-period')?.value || 'month',
+            summary: 'Relatório gerado pelo sistema inteligente do Listou',
+            data: analytics.purchaseData || []
+        };
+
+        const dataStr = JSON.stringify(reportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `listou-relatorio-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        if (notifications) {
+            notifications.showSuccess('Relatório exportado com sucesso!');
+        } else {
+            alert('Relatório exportado com sucesso!');
+        }
+        
+        console.log('📄 Relatório exportado');
+        
+    } catch (error) {
+        console.error('Erro ao exportar relatório:', error);
+        if (notifications) {
+            notifications.showError('Erro ao exportar relatório');
+        } else {
+            alert('Erro ao exportar relatório');
+        }
+    }
 }
 
 async function loadTemplates() {
@@ -1502,6 +1585,11 @@ async function finishPurchase() {
 
             // Registra compra no sistema de analytics
             const purchase = analytics.recordPurchase(boughtItems, totalSpent);
+            
+            // Atualiza relatórios inteligentes após registrar compra
+            if (typeof analytics.updateSmartReports === 'function') {
+                analytics.updateSmartReports();
+            }
             
             if (notifications) {
                 notifications.showSuccess(`Compra finalizada! Total: R$ ${totalSpent.toFixed(2)}. Dados salvos para relatórios.`);

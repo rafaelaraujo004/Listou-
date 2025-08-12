@@ -304,26 +304,260 @@
         <!-- Analytics Section -->
         <section id="section-analytics" class="content-section">
             <header class="section-header">
-                <h1>📊 Relatórios Comparativos</h1>
+                <h1>🧠 Relatórios Inteligentes</h1>
                 <div class="section-header-controls">
                     <select id="analytics-period" class="header-select">
                         <option value="week">Esta semana</option>
                         <option value="month">Este mês</option>
                         <option value="quarter">Últimos 3 meses</option>
+                        <option value="year">Este ano</option>
+                        <option value="all">Histórico completo</option>
                     </select>
-                    <div class="header-actions"></div>
+                    <button id="export-report-btn" class="header-action-btn" title="Exportar Relatório">
+                        📄 Exportar
+                    </button>
                 </div>
             </header>
 
-            <!-- Filtro por Supermercado -->
-            <div class="supermarket-filter">
-                <select id="supermarket-filter" class="filter-select">
-                    <option value="all">Todos os supermercados</option>
-                </select>
-                <small class="filter-hint">Compare preços entre diferentes mercados</small>
+            <!-- Dashboard de Métricas Principais -->
+            <div class="smart-dashboard">
+                <div class="metric-card total-spending">
+                    <div class="metric-icon">💰</div>
+                    <div class="metric-content">
+                        <h3>Total Gasto</h3>
+                        <span class="metric-value" id="total-spending">R$ 0,00</span>
+                        <span class="metric-change" id="spending-change">--</span>
+                    </div>
+                </div>
+
+                <div class="metric-card purchase-efficiency">
+                    <div class="metric-icon">⚡</div>
+                    <div class="metric-content">
+                        <h3>Eficiência de Compras</h3>
+                        <span class="metric-value" id="purchase-efficiency">--</span>
+                        <span class="metric-description" id="efficiency-desc">Itens por compra</span>
+                    </div>
+                </div>
+
+                <div class="metric-card savings-potential">
+                    <div class="metric-icon">🎯</div>
+                    <div class="metric-content">
+                        <h3>Potencial de Economia</h3>
+                        <span class="metric-value" id="savings-potential">R$ 0,00</span>
+                        <span class="metric-description">Baseado em padrões</span>
+                    </div>
+                </div>
+
+                <div class="metric-card shopping-score">
+                    <div class="metric-icon">🏆</div>
+                    <div class="metric-content">
+                        <h3>Score de Compras</h3>
+                        <span class="metric-value" id="shopping-score">--</span>
+                        <span class="metric-description" id="score-level">Iniciante</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="analytics-grid-minimal">
+            <!-- IA Analytics -->
+            <div class="ai-insights-section">
+                <h2>🤖 Insights de IA</h2>
+                <div class="insights-grid">
+                    <div class="insight-card primary-insight">
+                        <div class="insight-header">
+                            <span class="insight-icon">🧠</span>
+                            <h3>Análise Inteligente</h3>
+                        </div>
+                        <div class="insight-content" id="ai-primary-insight">
+                            Complete suas primeiras compras para receber insights personalizados da nossa IA
+                        </div>
+                        <div class="insight-confidence" id="insight-confidence">
+                            <span class="confidence-label">Confiança:</span>
+                            <span class="confidence-value">--</span>
+                        </div>
+                    </div>
+
+                    <div class="insight-card trend-analysis">
+                        <div class="insight-header">
+                            <span class="insight-icon">📈</span>
+                            <h3>Tendências de Gastos</h3>
+                        </div>
+                        <div class="trend-chart" id="spending-trend">
+                            <div class="no-data">Dados insuficientes para análise de tendências</div>
+                        </div>
+                    </div>
+
+                    <div class="insight-card category-intelligence">
+                        <div class="insight-header">
+                            <span class="insight-icon">🏷️</span>
+                            <h3>Inteligência por Categoria</h3>
+                        </div>
+                        <div class="category-insights" id="category-breakdown">
+                            <div class="no-data">Complete compras para ver análise por categoria</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise Comportamental -->
+            <div class="behavioral-analysis">
+                <h2>🧩 Análise Comportamental</h2>
+                <div class="behavior-grid">
+                    <div class="behavior-card shopping-patterns">
+                        <h3>📅 Padrões de Compra</h3>
+                        <div class="pattern-analysis" id="shopping-patterns">
+                            <div class="pattern-item">
+                                <span class="pattern-label">Dia preferido:</span>
+                                <span class="pattern-value" id="preferred-day">--</span>
+                            </div>
+                            <div class="pattern-item">
+                                <span class="pattern-label">Frequência:</span>
+                                <span class="pattern-value" id="shopping-frequency">--</span>
+                            </div>
+                            <div class="pattern-item">
+                                <span class="pattern-label">Horário típico:</span>
+                                <span class="pattern-value" id="typical-time">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card price-sensitivity">
+                        <h3>💵 Sensibilidade a Preços</h3>
+                        <div class="price-analysis" id="price-sensitivity">
+                            <div class="sensitivity-meter">
+                                <div class="meter-bar" id="sensitivity-bar"></div>
+                                <span class="meter-label" id="sensitivity-label">Analisando...</span>
+                            </div>
+                            <div class="price-insights" id="price-insights">
+                                Complete mais compras para análise de sensibilidade
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card brand-loyalty">
+                        <h3>🏪 Fidelidade a Marcas/Locais</h3>
+                        <div class="loyalty-analysis" id="brand-loyalty">
+                            <div class="loyalty-score">
+                                <span class="score-label">Score de Fidelidade:</span>
+                                <span class="score-value" id="loyalty-score">--</span>
+                            </div>
+                            <div class="loyalty-details" id="loyalty-details">
+                                Dados insuficientes para análise de fidelidade
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recomendações Inteligentes -->
+            <div class="smart-recommendations">
+                <h2>💡 Recomendações Personalizadas</h2>
+                <div class="recommendations-grid">
+                    <div class="recommendation-card cost-optimization">
+                        <div class="rec-header">
+                            <span class="rec-icon">💰</span>
+                            <h3>Otimização de Custos</h3>
+                        </div>
+                        <div class="rec-content" id="cost-recommendations">
+                            Complete compras para receber recomendações de economia
+                        </div>
+                    </div>
+
+                    <div class="recommendation-card shopping-optimization">
+                        <div class="rec-header">
+                            <span class="rec-icon">🎯</span>
+                            <h3>Otimização de Compras</h3>
+                        </div>
+                        <div class="rec-content" id="shopping-recommendations">
+                            A IA analisará seus padrões para sugerir melhorias
+                        </div>
+                    </div>
+
+                    <div class="recommendation-card seasonal-tips">
+                        <div class="rec-header">
+                            <span class="rec-icon">🌱</span>
+                            <h3>Dicas Sazonais</h3>
+                        </div>
+                        <div class="rec-content" id="seasonal-recommendations">
+                            Receba dicas baseadas na época do ano e seus hábitos
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparativo de Mercado -->
+            <div class="market-comparison">
+                <h2>📊 Comparativo Inteligente</h2>
+                <div class="comparison-grid">
+                    <div class="comparison-card supermarket-ranking">
+                        <h3>🏪 Ranking de Supermercados</h3>
+                        <div class="ranking-list" id="supermarket-ranking">
+                            <div class="no-data">Complete compras em diferentes supermercados para ver comparação</div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card best-deals">
+                        <h3>🎯 Melhores Negócios</h3>
+                        <div class="deals-list" id="best-deals">
+                            <div class="no-data">A IA identificará os melhores preços baseado no seu histórico</div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card market-trends">
+                        <h3>📈 Tendências do Mercado</h3>
+                        <div class="trends-analysis" id="market-trends">
+                            <div class="trend-item">
+                                <span class="trend-label">Inflação detectada:</span>
+                                <span class="trend-value">--</span>
+                            </div>
+                            <div class="trend-item">
+                                <span class="trend-label">Produtos em alta:</span>
+                                <span class="trend-value">--</span>
+                            </div>
+                            <div class="trend-item">
+                                <span class="trend-label">Oportunidades:</span>
+                                <span class="trend-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previsões e Projeções -->
+            <div class="predictions-section">
+                <h2>🔮 Previsões Inteligentes</h2>
+                <div class="predictions-grid">
+                    <div class="prediction-card spending-forecast">
+                        <h3>💸 Previsão de Gastos</h3>
+                        <div class="forecast-content" id="spending-forecast">
+                            <div class="forecast-item">
+                                <span class="forecast-period">Próximo mês:</span>
+                                <span class="forecast-amount" id="next-month-forecast">--</span>
+                            </div>
+                            <div class="forecast-item">
+                                <span class="forecast-period">Próximos 3 meses:</span>
+                                <span class="forecast-amount" id="quarter-forecast">--</span>
+                            </div>
+                            <div class="forecast-confidence">
+                                <span class="confidence-label">Precisão da previsão:</span>
+                                <span class="confidence-value" id="forecast-confidence">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="prediction-card seasonal-planning">
+                        <h3>🗓️ Planejamento Sazonal</h3>
+                        <div class="seasonal-content" id="seasonal-planning">
+                            <div class="seasonal-alert" id="seasonal-alerts">
+                                A IA alertará sobre mudanças sazonais de preços
+                            </div>
+                            <div class="planning-suggestions" id="planning-suggestions">
+                                Receba sugestões de planejamento baseadas no calendário
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
                 <!-- Card Principal de Economia -->
                 <div class="analytics-card primary-card">
                     <h3>💰 Total de Gastos</h3>

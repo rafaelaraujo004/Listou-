@@ -3779,3 +3779,616 @@ select option {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.3) !important;
     display: block !important;
 }
+
+/* ====================================
+   🧠 RELATÓRIOS INTELIGENTES - ESTILOS
+   ==================================== */
+
+/* Dashboard de Métricas Principais */
+.smart-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: var(--color-primary-alpha-10);
+    border-radius: var(--radius-full);
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-text);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.metric-change {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+}
+
+.metric-change.positive {
+    color: var(--color-success);
+    background: var(--color-success-alpha-10);
+}
+
+.metric-change.negative {
+    color: var(--color-danger);
+    background: var(--color-danger-alpha-10);
+}
+
+.metric-description {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+}
+
+/* IA Insights */
+.ai-insights-section {
+    margin: 2rem 0;
+}
+
+.ai-insights-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.insight-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.insight-card.primary-insight {
+    background: linear-gradient(135deg, var(--color-primary-alpha-5), var(--color-secondary-alpha-5));
+    border-color: var(--color-primary-alpha-20);
+}
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.insight-icon {
+    font-size: 1.5rem;
+}
+
+.insight-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.insight-content {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    margin-bottom: 1rem;
+}
+
+.insight-confidence {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--color-bg-alpha-50);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.confidence-label {
+    color: var(--color-text-dim);
+    font-weight: 500;
+}
+
+.confidence-value {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Análise Comportamental */
+.behavioral-analysis {
+    margin: 2rem 0;
+}
+
+.behavioral-analysis h2 {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.behavior-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.behavior-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.behavior-card h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pattern-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.pattern-item:last-child {
+    border-bottom: none;
+}
+
+.pattern-label {
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+}
+
+.pattern-value {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.sensitivity-meter {
+    position: relative;
+    height: 8px;
+    background: var(--color-border-light);
+    border-radius: var(--radius-full);
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.meter-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-danger));
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: var(--radius-full);
+}
+
+.meter-label {
+    display: block;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-top: 0.5rem;
+}
+
+/* Recomendações Inteligentes */
+.smart-recommendations {
+    margin: 2rem 0;
+}
+
+.smart-recommendations h2 {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.rec-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.rec-icon {
+    font-size: 1.5rem;
+}
+
+.rec-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.rec-content {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text);
+}
+
+.rec-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.rec-item:last-child {
+    border-bottom: none;
+}
+
+/* Comparativo de Mercado */
+.market-comparison {
+    margin: 2rem 0;
+}
+
+.market-comparison h2 {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.comparison-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.comparison-card h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.trend-item:last-child {
+    border-bottom: none;
+}
+
+.trend-label {
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+}
+
+.trend-value {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+/* Previsões e Projeções */
+.predictions-section {
+    margin: 2rem 0;
+}
+
+.predictions-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.predictions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.prediction-card {
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+}
+
+.prediction-card h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.forecast-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.forecast-item:last-child {
+    border-bottom: none;
+}
+
+.forecast-period {
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+}
+
+.forecast-amount {
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.forecast-confidence {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--color-bg-alpha-50);
+    border-radius: var(--radius-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.confidence-label {
+    color: var(--color-text-dim);
+    font-size: 0.85rem;
+}
+
+.confidence-value {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Estado vazio para relatórios */
+.empty-reports-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--color-card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-reports-state h3 {
+    margin: 0 0 1rem 0;
+    color: var(--color-text);
+    font-size: 1.5rem;
+}
+
+.empty-reports-state p {
+    color: var(--color-text-dim);
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.features-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.feature-item {
+    padding: 1rem;
+    background: var(--color-bg-alpha-50);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+    border: 1px solid var(--color-border-light);
+}
+
+/* Botão de exportar relatório */
+.header-action-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-action-btn:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+}
+
+/* Gráfico de tendências simples */
+.trend-chart-simple {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.trend-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+}
+
+.trend-label {
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.trend-indicator.positive {
+    background: var(--color-success-alpha-10);
+    color: var(--color-success);
+}
+
+/* Itens de categoria */
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.category-item:last-child {
+    border-bottom: none;
+}
+
+.category-name {
+    color: var(--color-text);
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.category-stats {
+    color: var(--color-text-dim);
+    font-size: 0.85rem;
+}
+
+/* Responsividade para relatórios */
+@media (max-width: 768px) {
+    .smart-dashboard {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .insights-grid,
+    .behavior-grid,
+    .recommendations-grid,
+    .comparison-grid,
+    .predictions-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 2rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .features-preview {
+        grid-template-columns: 1fr;
+    }
+}
