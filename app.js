@@ -2080,10 +2080,137 @@ async function clearAllItems() {
     }
 }
 
+// ============== SHARE TARGET SUPPORT ==============
+
+function handleShareTarget() {
+    // Verificar se o app foi aberto via share target
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedTitle = urlParams.get('title');
+    const sharedText = urlParams.get('text');
+    const sharedUrl = urlParams.get('url');
+
+    if (sharedTitle || sharedText || sharedUrl) {
+        console.log('📤 Share target detectado:', { sharedTitle, sharedText, sharedUrl });
+        
+        // Processar conteúdo compartilhado
+        let itemsToAdd = [];
+        
+        if (sharedText) {
+            // Tentar extrair itens da lista compartilhada
+            const lines = sharedText.split('\n').filter(line => line.trim());
+            itemsToAdd = lines.map(line => {
+                // Limpar formatação comum de listas
+                const cleaned = line
+                    .replace(/^[-*•]\s*/, '') // Remove marcadores
+                    .replace(/^\d+\.\s*/, '') // Remove numeração
+                    .trim();
+                return cleaned;
+            }).filter(item => item.length > 0);
+        }
+        
+        if (sharedTitle && !itemsToAdd.includes(sharedTitle)) {
+            itemsToAdd.unshift(sharedTitle);
+        }
+        
+        // Adicionar itens à lista
+        if (itemsToAdd.length > 0) {
+            setTimeout(async () => {
+                for (const itemName of itemsToAdd) {
+                    if (itemName.length > 2) { // Filtrar itens muito pequenos
+                        await addItemToList(itemName, 'Geral', 1);
+                    }
+                }
+                
+                if (notifications) {
+                    notifications.showSuccess(`${itemsToAdd.length} itens adicionados da lista compartilhada!`);
+                } else {
+                    alert(`${itemsToAdd.length} itens adicionados da lista compartilhada!`);
+                }
+                
+                // Limpar URL parameters
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }, 1000);
+        }
+    }
+}
+
+// ============== HANDLE LINKS SUPPORT ==============
+
+function handleDeepLinks() {
+    // Verificar se há ações específicas na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    
+    switch (action) {
+        case 'new-list':
+            console.log('🔗 Deep link: Nova lista');
+            setTimeout(() => clearList(), 500);
+            break;
+            
+        case 'templates':
+            console.log('🔗 Deep link: Templates');
+            setTimeout(() => {
+                const templatesTab = document.querySelector('[data-section="templates"]');
+                if (templatesTab) templatesTab.click();
+            }, 500);
+            break;
+            
+        case 'analytics':
+            console.log('🔗 Deep link: Relatórios');
+            setTimeout(() => {
+                const analyticsTab = document.querySelector('[data-section="analytics"]');
+                if (analyticsTab) analyticsTab.click();
+            }, 500);
+            break;
+            
+        default:
+            // Nenhuma ação específica
+            break;
+    }
+}
+
+// ============== WIDGET DATA ENDPOINT ==============
+
+function setupWidgetDataEndpoint() {
+    // Simular endpoint para dados do widget
+    // Em uma implementação real, isso seria um endpoint do servidor
+    if (navigator.serviceWorker && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+            // Enviar dados atuais para o service worker usar no widget
+            const widgetData = {
+                totalItems: currentItems.length,
+                pendingItems: currentItems.filter(item => !item.purchased).length,
+                lastUpdate: new Date().toISOString(),
+                topItems: currentItems
+                    .filter(item => !item.purchased)
+                    .slice(0, 5)
+                    .map(item => ({
+                        name: item.name,
+                        category: item.category,
+                        quantity: item.quantity
+                    }))
+            };
+            
+            // Armazenar dados para o widget
+            localStorage.setItem('listou-widget-data', JSON.stringify(widgetData));
+        });
+    }
+}
+
 // Inicialização principal
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 DOM carregado, iniciando app...');
+    
+    // Verificar share target e deep links
+    handleShareTarget();
+    handleDeepLinks();
+    
+    // Inicializar app
     await initApp();
+    
+    // Configurar endpoint do widget
+    setupWidgetDataEndpoint();
 });
 
 console.log('📱 Listou carregado!');

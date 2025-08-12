@@ -6,16 +6,55 @@
     "scope": "/",
     "id": "app.vercel.listou_phi.twa",
     "display": "standalone",
+    "display_override": ["window-controls-overlay", "standalone"],
     "orientation": "portrait-primary",
     "background_color": "#0a0b0d",
     "theme_color": "#667eea",
     "lang": "pt-BR",
     "dir": "ltr",
     "categories": ["shopping", "productivity", "lifestyle"],
+    "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
     "prefer_related_applications": false,
     "launch_handler": {
         "client_mode": "navigate-existing"
     },
+    "handle_links": "preferred",
+    "share_target": {
+        "action": "/share",
+        "method": "GET",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    },
+    "widgets": [
+        {
+            "name": "Lista Rápida",
+            "short_name": "Lista",
+            "description": "Acesso rápido à sua lista de compras",
+            "tag": "quick-list",
+            "template": "quick-list-template",
+            "ms_ac_template": "quick-list-adaptive-card.json",
+            "data": "/widget-data/quick-list.json",
+            "type": "application/json",
+            "screenshots": [
+                {
+                    "src": "widget-screenshot.png",
+                    "sizes": "256x256",
+                    "label": "Widget de lista rápida"
+                }
+            ],
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ],
+            "auth": false,
+            "update": 3600
+        }
+    ],
     "edge_side_panel": {
         "preferred_width": 400
     },
