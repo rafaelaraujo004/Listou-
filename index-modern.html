@@ -40,6 +40,11 @@
 
     <!-- Header with modern design -->
     <header class="app-header">
+        <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Abrir menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
         <div class="header-content" style="flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;">
             <img src="icon-192.png" alt="App Icon" style="width:72px;height:72px;display:block;margin:0 auto 0.5rem auto;box-shadow:0 4px 16px #0002;border-radius:16px;background:#fff;" />
             <div class="header-title" style="text-align:center;">
@@ -50,6 +55,10 @@
                 <!-- Botão de voz removido -->
                 <button id="share-list-btn" class="header-btn" title="Compartilhar lista">
                     📤
+                </button>
+                <!-- Botão de teste do sidebar -->
+                <button id="test-sidebar-btn" class="header-btn" title="Testar Sidebar" onclick="testSidebarDirect()">
+                    🧪 Teste
                 </button>
             </div>
         </div>
@@ -254,18 +263,6 @@
             </div>
 
             <div class="settings-grid">
-                <div class="settings-card">
-                    <h3>🎨 Aparência</h3>
-                    <div class="setting-item">
-                        <label for="theme-select">Tema:</label>
-                        <select id="theme-select" class="setting-select">
-                            <option value="auto">Automático</option>
-                            <option value="light">Claro</option>
-                            <option value="dark">Escuro</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="settings-card">
                     <h3>🔔 Notificações</h3>
                     <div class="setting-item">

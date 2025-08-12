@@ -243,29 +243,29 @@
     --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
     
     /* === CORES SÓLIDAS === */
-    --color-bg: #0b0f1a;
-    --color-surface: #12161f;
-    --color-surface-elevated: #1a1f2e;
-    --color-surface-glass: rgba(26, 31, 46, 0.95);
-    --color-surface-hover: #222740;
-    --color-border: rgba(255, 255, 255, 0.06);
-    --color-border-strong: rgba(255, 255, 255, 0.1);
-    --color-text: #e2e8f0;
-    --color-text-secondary: #a0aec0;
-    --color-text-muted: #718096;
-    --color-text-dim: #4a5568;
-    --color-accent: #8b5cf6;
-    --color-accent-light: #a78bfa;
-    --color-primary: #3b82f6;
-    --color-primary-light: rgba(59, 130, 246, 0.1);
-    --color-primary-dark: #2563eb;
-    --color-success: #10b981;
-    --color-success-light: rgba(16, 185, 129, 0.1);
+    --color-bg: #f8f9fa;
+    --color-surface: #ffffff;
+    --color-surface-elevated: #f1f5f9;
+    --color-surface-glass: rgba(255, 255, 255, 0.95);
+    --color-surface-hover: #e2e8f0;
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-strong: rgba(0, 0, 0, 0.12);
+    --color-text: #1f2937;
+    --color-text-secondary: #374151;
+    --color-text-muted: #6b7280;
+    --color-text-dim: #9ca3af;
+    --color-accent: #7c3aed;
+    --color-accent-light: #a855f7;
+    --color-primary: #2563eb;
+    --color-primary-light: rgba(37, 99, 235, 0.1);
+    --color-primary-dark: #1d4ed8;
+    --color-success: #059669;
+    --color-success-light: rgba(5, 150, 105, 0.1);
     --color-warning: #f59e0b;
     --color-warning-light: rgba(245, 158, 11, 0.1);
-    --color-danger: #ef4444;
-    --color-danger-light: rgba(239, 68, 68, 0.1);
-    --color-danger-dark: #dc2626;
+    --color-danger: #dc2626;
+    --color-danger-light: rgba(220, 38, 38, 0.1);
+    --color-danger-dark: #b91c1c;
     
     /* === CORES COMPLEMENTARES === */
     --color-white-alpha-10: rgba(255, 255, 255, 0.1);
@@ -274,13 +274,13 @@
     --color-black-alpha-80: rgba(0, 0, 0, 0.8);
     
     /* === SOMBRAS AVANÇADAS === */
-    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-neon: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
-    --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.2);
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.06);
+    --shadow-neon: 0 0 20px rgba(124, 58, 237, 0.2), 0 0 40px rgba(124, 58, 237, 0.1);
+    --shadow-glow: 0 0 30px rgba(37, 99, 235, 0.15);
     
     /* === BORDAS E RAIOS === */
     --radius-xs: 4px;
@@ -1580,6 +1580,33 @@ body {
     justify-content: center;
     min-height: 24px;
     line-height: 1;
+}
+
+/* Estilos para campos editáveis */
+.editable-field {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 2px 4px;
+    position: relative;
+}
+
+.editable-field:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    transform: scale(1.02);
+}
+
+.editable-field::after {
+    content: '✏️';
+    font-size: 10px;
+    opacity: 0;
+    margin-left: 4px;
+    transition: opacity 0.2s ease;
+}
+
+.editable-field:hover::after {
+    opacity: 0.6;
 }
 
 /* Garantir espaçamento consistente em telas menores */
@@ -3464,20 +3491,11 @@ select option {
     display: none !important;
 }
 
-/* ===== MELHORIAS ESPECÍFICAS PARA DARK MODE ===== */
 
-/* Garantir que todos os elementos tenham fundo escuro completo */
-:root:not(.theme-light) {
-    /* Melhorar legibilidade e conforto visual */
-    --backdrop-filter: blur(20px) saturate(180%);
-}
 
-/* Elementos com glass effect mais sutis no dark mode */
-:root:not(.theme-light) .sidebar,
-:root:not(.theme-light) .main-content,
-:root:not(.theme-light) .purchase-type-container {
-    backdrop-filter: var(--backdrop-filter);
-}
+
+
+
 
 /* Melhorar contraste de textos no dark mode */
 :root:not(.theme-light) .sidebar-header h2,
@@ -3603,6 +3621,12 @@ select option {
     color: var(--color-text) !important;
 }
 
+/* Estilos para campos editáveis no tema escuro */
+:root:not(.theme-light) .editable-field:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
 /* Garantir que botões de ação também sejam escuros */
 :root:not(.theme-light) .btn,
 :root:not(.theme-light) .button,
@@ -3653,4 +3677,105 @@ select option {
 .sidebar-nav::-webkit-scrollbar-thumb:hover,
 .sidebar-recent::-webkit-scrollbar-thumb:hover {
     background: var(--color-accent);
+}
+
+/* ===== ESTILOS DO HEADER PRINCIPAL ===== */
+.app-header {
+    position: relative;
+    width: 100%;
+    padding: var(--space-lg);
+    background: var(--color-surface-glass);
+    backdrop-filter: var(--blur-md);
+    border-bottom: 1px solid var(--color-border);
+    z-index: 900; /* Menor que o sidebar-toggle */
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.header-title h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.header-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.header-btn {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 1.1rem;
+}
+
+.header-btn:hover {
+    background: var(--color-surface-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ===== CORREÇÃO DO BOTÃO HAMBURGER ===== */
+.sidebar-toggle {
+    position: fixed !important;
+    top: 20px !important;
+    left: 20px !important;
+    z-index: 1001 !important; /* Maior que tudo */
+    background: var(--gradient-primary) !important;
+    border: none !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 14px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    transition: var(--transition-normal) !important;
+    box-shadow: var(--shadow-lg), var(--shadow-neon) !important;
+    width: 52px !important;
+    height: 52px !important;
+    backdrop-filter: var(--blur-sm) !important;
+    border: 1px solid var(--color-border) !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.sidebar-toggle.hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.hamburger-line {
+    width: 22px !important;
+    height: 2.5px !important;
+    background: var(--color-text) !important;
+    border-radius: var(--radius-full) !important;
+    transition: var(--transition-fast) !important;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3) !important;
+    display: block !important;
 }

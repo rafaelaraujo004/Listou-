@@ -124,7 +124,7 @@
                         <li>✓ Controle de preços opcional</li>
                         <li>✗ Sem relatórios detalhados</li>
                     </ul>
-                    <button class="option-btn" data-type="casual">Escolher Avulsa</button>
+                    <button class="option-btn" data-type="casual" onclick="selectCasualType()">Escolher Avulsa</button>
                 </div>
                 
                 <div class="option-card featured" id="controlled-purchase-option">
@@ -140,7 +140,7 @@
                         <li>✓ Relatórios detalhados</li>
                         <li>✓ Templates de listas</li>
                     </ul>
-                    <button class="option-btn primary" data-type="controlled">Escolher Controlada</button>
+                    <button class="option-btn primary" data-type="controlled" onclick="selectControlledType()">Escolher Controlada</button>
                 </div>
             </div>
             
@@ -151,7 +151,7 @@
     </div>
 
     <!-- Main Content -->
-    <main id="main-content" class="main-content" style="display: none;">
+    <main id="main-content" class="main-content">
         <!-- Main Section -->
         <section id="section-main" class="content-section active">
 
@@ -520,6 +520,76 @@
 
     <!-- Overlay for mobile sidebar -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Script de emergência para seleção de tipo de compra -->
+    <script>
+        // Funções inline para garantir funcionamento
+        function selectCasualType() {
+            console.log('🛒 Seleção Casual (inline)');
+            localStorage.setItem('listou-purchase-type', 'casual');
+            hideSelectionScreen();
+        }
+        
+        function selectControlledType() {
+            console.log('📊 Seleção Controlada (inline)');
+            localStorage.setItem('listou-purchase-type', 'controlled');
+            hideSelectionScreen();
+        }
+        
+        function hideSelectionScreen() {
+            console.log('🏠 Escondendo tela de seleção (inline)');
+            const screen = document.getElementById('purchase-type-screen');
+            const mainContent = document.getElementById('main-content');
+            
+            if (screen) {
+                screen.style.display = 'none';
+                screen.style.visibility = 'hidden';
+                screen.style.opacity = '0';
+                screen.style.zIndex = '-999';
+            }
+            
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.style.visibility = 'visible';
+                mainContent.style.opacity = '1';
+                mainContent.style.zIndex = '1';
+            }
+            
+            // Foca no input após um momento
+            setTimeout(() => {
+                const itemInput = document.getElementById('item-input');
+                if (itemInput) {
+                    itemInput.focus();
+                    console.log('⌨️ Foco no input (inline)');
+                }
+            }, 500);
+        }
+        
+        // Função de emergência global
+        window.forceShowApp = function() {
+            console.log('🚨 FORÇANDO EXIBIÇÃO DO APP');
+            const screen = document.getElementById('purchase-type-screen');
+            if (screen) screen.remove();
+            
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                mainContent.style.display = 'block !important';
+                mainContent.style.visibility = 'visible !important';
+                mainContent.style.opacity = '1 !important';
+                mainContent.style.position = 'relative !important';
+                mainContent.style.zIndex = '9999 !important';
+            }
+        };
+        
+        // Auto-esconde se já tem tipo salvo
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedType = localStorage.getItem('listou-purchase-type');
+            if (savedType) {
+                console.log('🔄 Tipo já salvo, escondendo tela');
+                hideSelectionScreen();
+            }
+        });
+    </script>
 
     <script src="db.js" type="module"></script>
     <script src="qr.js" type="module"></script>

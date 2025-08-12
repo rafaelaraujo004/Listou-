@@ -1,7 +1,7 @@
 // intelligence.js - Sistema de Inteligência Artificial Avançado
 // Funcionalidades: ML, predições, recomendações personalizadas, análise comportamental
 
-// Base de conhecimento expandida com nutrição e sazonalidade
+// Base de conhecimento expandida e sazonalidade
 const ADVANCED_PRODUCT_DATABASE = {
     // Frutas com dados nutricionais e sazonalidade
     'banana': { 
@@ -200,6 +200,140 @@ const ADVANCED_PRODUCT_DATABASE = {
         health_benefits: ['proteína completa', 'colina', 'vitaminas'],
         storage_days: 21,
         eco_score: 7
+    },
+    
+    // Produtos comuns adicionais
+    'açúcar': { 
+        category: 'outros', 
+        price: 4.50, 
+        icon: '🧊', 
+        keywords: ['açúcar', 'acucar', 'sugar', 'cristal', 'refinado'],
+        nutrition: { calories: 387, carbs: 100 },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['energia rápida'],
+        storage_days: 365,
+        eco_score: 5
+    },
+    'sal': { 
+        category: 'outros', 
+        price: 2.50, 
+        icon: '🧂', 
+        keywords: ['sal', 'salt', 'refinado', 'grosso'],
+        nutrition: { sodium: 'high' },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['conservação', 'eletrólitos'],
+        storage_days: 365,
+        eco_score: 7
+    },
+    'óleo': { 
+        category: 'outros', 
+        price: 8.90, 
+        icon: '🫗', 
+        keywords: ['óleo', 'oleo', 'oil', 'soja', 'canola', 'girassol'],
+        nutrition: { calories: 884, fat: 100 },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['gorduras essenciais', 'vitamina e'],
+        storage_days: 180,
+        eco_score: 6
+    },
+    'macarrão': { 
+        category: 'outros', 
+        price: 5.50, 
+        icon: '🍝', 
+        keywords: ['macarrão', 'macarrao', 'pasta', 'espaguete', 'penne', 'massa'],
+        nutrition: { calories: 131, protein: 5, carbs: 25 },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['energia', 'carboidratos'],
+        storage_days: 365,
+        eco_score: 7
+    },
+    'água': { 
+        category: 'bebidas', 
+        price: 3.50, 
+        icon: '💧', 
+        keywords: ['água', 'agua', 'water', 'mineral', 'natural'],
+        nutrition: { calories: 0 },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['hidratação', 'essencial'],
+        storage_days: 365,
+        eco_score: 8
+    },
+    'refrigerante': { 
+        category: 'bebidas', 
+        price: 6.50, 
+        icon: '🥤', 
+        keywords: ['refrigerante', 'refri', 'coca', 'pepsi', 'guaraná', 'sprite'],
+        nutrition: { calories: 42, sugar: 'high' },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: [],
+        storage_days: 180,
+        eco_score: 3
+    },
+    'café': { 
+        category: 'bebidas', 
+        price: 12.90, 
+        icon: '☕', 
+        keywords: ['café', 'cafe', 'coffee', 'torrado', 'moído', 'grão'],
+        nutrition: { calories: 2, caffeine: 'high' },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['estimulante', 'antioxidantes'],
+        storage_days: 90,
+        eco_score: 6
+    },
+    'papel higiênico': { 
+        category: 'higiene', 
+        price: 18.90, 
+        icon: '🧻', 
+        keywords: ['papel higiênico', 'papel higienico', 'toilet paper', 'tp', 'neve', 'scott'],
+        nutrition: {},
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['higiene'],
+        storage_days: 365,
+        eco_score: 4
+    },
+    'detergente': { 
+        category: 'limpeza', 
+        price: 4.50, 
+        icon: '🧽', 
+        keywords: ['detergente', 'det', 'lava louça', 'ypê', 'minuano'],
+        nutrition: {},
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['limpeza'],
+        storage_days: 365,
+        eco_score: 5
+    },
+    'sabão em pó': { 
+        category: 'limpeza', 
+        price: 22.90, 
+        icon: '📦', 
+        keywords: ['sabão em pó', 'sabao em po', 'powder', 'omo', 'ariel', 'tixan'],
+        nutrition: {},
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['limpeza de roupas'],
+        storage_days: 365,
+        eco_score: 4
+    },
+    'manteiga': { 
+        category: 'laticínios', 
+        price: 8.90, 
+        icon: '🧈', 
+        keywords: ['manteiga', 'butter', 'com sal', 'sem sal'],
+        nutrition: { calories: 717, fat: 81, vitamin_a: 'high' },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['vitamina a', 'energia'],
+        storage_days: 30,
+        eco_score: 5
+    },
+    'iogurte': { 
+        category: 'laticínios', 
+        price: 6.50, 
+        icon: '🥛', 
+        keywords: ['iogurte', 'yogurt', 'natural', 'morango', 'danone', 'nestle'],
+        nutrition: { calories: 59, protein: 10, calcium: 'high', probiotics: 'high' },
+        season: [1,2,3,4,5,6,7,8,9,10,11,12],
+        health_benefits: ['probióticos', 'cálcio', 'proteína'],
+        storage_days: 14,
+        eco_score: 6
     }
 };
 
@@ -370,42 +504,142 @@ export class IntelligenceManager {
         this.savePurchaseHistory();
     }
 
-    // Obtem sugestões de autocomplete
+    // Obtem sugestões de autocomplete melhoradas
     getAutocompleteSuggestions(query) {
-        if (!query || query.length < 2) return [];
+        if (!query || query.length < 1) return [];
         
         const suggestions = [];
         const lowerQuery = query.toLowerCase();
+        const results = new Map(); // Para evitar duplicatas
+        
+        // Score para ordenação das sugestões
+        const scoreItem = (name, data, matchType, source) => {
+            let score = 0;
+            const lowerName = name.toLowerCase();
+            
+            // Pontuação baseada no tipo de match
+            if (lowerName === lowerQuery) score += 100; // Match exato
+            else if (lowerName.startsWith(lowerQuery)) score += 80; // Começa com
+            else if (lowerName.includes(lowerQuery)) score += 60; // Contém
+            else if (matchType === 'keyword') score += 40; // Match por palavra-chave
+            
+            // Bonus por fonte
+            if (source === 'history') score += 20; // Histórico tem prioridade
+            if (source === 'database') score += 10;
+            
+            // Bonus por frequência (histórico)
+            if (source === 'history') {
+                const frequency = this.purchaseHistory.filter(item => item.name === name).length;
+                score += Math.min(frequency * 5, 25); // Max 25 pontos extras
+            }
+            
+            return score;
+        };
         
         // Busca na base de produtos
         Object.entries(PRODUCT_DATABASE).forEach(([name, data]) => {
-            if (name.toLowerCase().includes(lowerQuery) || 
-                data.keywords.some(keyword => keyword.toLowerCase().includes(lowerQuery))) {
-                suggestions.push({
+            let matchType = null;
+            let score = 0;
+            
+            if (name.toLowerCase().includes(lowerQuery)) {
+                matchType = 'name';
+                score = scoreItem(name, data, matchType, 'database');
+            } else if (data.keywords && data.keywords.some(keyword => 
+                keyword.toLowerCase().includes(lowerQuery))) {
+                matchType = 'keyword';
+                score = scoreItem(name, data, matchType, 'database');
+            }
+            
+            if (matchType && !results.has(name)) {
+                results.set(name, {
                     name,
                     category: data.category,
                     icon: data.icon,
                     price: data.price,
-                    source: 'database'
+                    source: 'database',
+                    score: score,
+                    description: data.keywords ? data.keywords.join(', ') : '',
+                    nutrition: data.nutrition || null
                 });
             }
         });
 
-        // Busca no histórico
+        // Busca no histórico com prioridade
         this.purchaseHistory.forEach(item => {
-            if (item.name.toLowerCase().includes(lowerQuery) && 
-                !suggestions.find(s => s.name === item.name)) {
-                suggestions.push({
-                    name: item.name,
-                    category: item.category || 'outros',
-                    icon: '📦',
-                    price: item.price || 0,
-                    source: 'history'
-                });
+            if (item.name.toLowerCase().includes(lowerQuery)) {
+                const existingItem = results.get(item.name);
+                const score = scoreItem(item.name, item, 'name', 'history');
+                
+                if (!existingItem || score > existingItem.score) {
+                    results.set(item.name, {
+                        name: item.name,
+                        category: item.category || 'outros',
+                        icon: PRODUCT_DATABASE[item.name]?.icon || '📦',
+                        price: item.price || PRODUCT_DATABASE[item.name]?.price || 0,
+                        source: 'history',
+                        score: score,
+                        lastPurchase: item.date || 'Recente',
+                        frequency: this.purchaseHistory.filter(h => h.name === item.name).length
+                    });
+                }
             }
         });
 
-        return suggestions.slice(0, 8); // Limita a 8 sugestões
+        // Converte Map para array e ordena por score
+        const sortedResults = Array.from(results.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8); // Limita a 8 sugestões
+
+        return sortedResults;
+    }
+
+    // Obtém sugestões populares para exibir quando o campo está vazio
+    getPopularSuggestions() {
+        const popularItems = [];
+        
+        // Itens mais frequentes do histórico
+        const historyFrequency = {};
+        this.purchaseHistory.forEach(item => {
+            historyFrequency[item.name] = (historyFrequency[item.name] || 0) + 1;
+        });
+        
+        // Ordenar por frequência e pegar os top 3
+        const topHistory = Object.entries(historyFrequency)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3)
+            .map(([name, frequency]) => {
+                const dbItem = PRODUCT_DATABASE[name];
+                return {
+                    name,
+                    category: dbItem?.category || 'outros',
+                    icon: dbItem?.icon || '📦',
+                    price: dbItem?.price || 0,
+                    source: 'history',
+                    score: 100,
+                    frequency
+                };
+            });
+        
+        // Itens essenciais recomendados (se não estão no histórico)
+        const essentialItems = ['arroz', 'feijão', 'óleo', 'açúcar', 'sal'];
+        const essentialSuggestions = essentialItems
+            .filter(item => !historyFrequency[item])
+            .slice(0, 3)
+            .map(name => {
+                const dbItem = PRODUCT_DATABASE[name];
+                return {
+                    name,
+                    category: dbItem?.category || 'outros',
+                    icon: dbItem?.icon || '📦',
+                    price: dbItem?.price || 0,
+                    source: 'database',
+                    score: 80,
+                    description: 'Item essencial'
+                };
+            });
+        
+        // Combinar e limitar a 6 sugestões
+        return [...topHistory, ...essentialSuggestions].slice(0, 6);
     }
 
     // Obtem sugestões inteligentes baseadas em padrões
@@ -569,6 +803,27 @@ export class IntelligenceManager {
             return this.getFavoritesTemplate();
         }
         return PREDEFINED_TEMPLATES[templateName] || [];
+    }
+
+    // Obtém informações de um produto da base de dados
+    getProductInfo(productName) {
+        const lowerName = productName.toLowerCase();
+        
+        // Buscar por nome exato
+        if (PRODUCT_DATABASE[lowerName]) {
+            return PRODUCT_DATABASE[lowerName];
+        }
+        
+        // Buscar por palavras-chave
+        for (const [name, data] of Object.entries(PRODUCT_DATABASE)) {
+            if (data.keywords && data.keywords.some(keyword => 
+                keyword.toLowerCase() === lowerName || lowerName.includes(keyword.toLowerCase())
+            )) {
+                return data;
+            }
+        }
+        
+        return null;
     }
 
     // Analisa padrões de compra para insights

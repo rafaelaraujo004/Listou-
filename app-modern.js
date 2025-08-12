@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Verificar compatibilidade
     checkBrowserCompatibility();
     
+    // SETUP IMEDIATO DO SIDEBAR
+    setupSidebarImmediate();
+    
     // Carregar módulos
     const modules = await loadModules();
     if (!modules) {
@@ -53,6 +56,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     await initializeApp(modules);
+});
+
+// ===== SETUP IMEDIATO DO SIDEBAR =====
+function setupSidebarImmediate() {
+    console.log('🔧 Setup imediato do sidebar...');
+    
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        console.log('✅ Elementos encontrados, configurando...');
+        
+        sidebarToggle.onclick = function(e) {
+            e.preventDefault();
+            console.log('🍔 CLIQUE DIRETO NO HAMBURGER!');
+            
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                sidebar.classList.add('closed');
+                document.body.style.overflow = '';
+                console.log('Sidebar fechada');
+            } else {
+                sidebar.classList.add('open');
+                sidebar.classList.remove('closed');
+                document.body.style.overflow = 'hidden';
+                console.log('Sidebar aberta');
+            }
+        };
+        
+        console.log('✅ Event listener onclick adicionado!');
+    } else {
+        console.error('❌ Elementos não encontrados:', { sidebarToggle: !!sidebarToggle, sidebar: !!sidebar });
+    }
+}
+
+// Backup para garantir inicialização em caso de problemas
+window.addEventListener('load', () => {
+    // Verificar se o sidebar ainda não foi configurado
+    setTimeout(() => {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (sidebarToggle && !sidebarToggle.hasAttribute('data-configured')) {
+            console.log('Configurando sidebar via backup...');
+            setupSidebar();
+            sidebarToggle.setAttribute('data-configured', 'true');
+        }
+    }, 1000);
 });
 
 // ===== FUNÇÕES DE INICIALIZAÇÃO =====
@@ -73,7 +122,14 @@ async function loadModules() {
         };
     } catch (error) {
         console.error('Erro ao carregar módulos:', error);
-        return null;
+        
+        // Retornar módulos básicos para não quebrar a aplicação
+        return {
+            db: await import('./db.js'),
+            intelligence: null,
+            analytics: null,
+            notifications: null
+        };
     }
 }
 
@@ -90,10 +146,16 @@ function checkBrowserCompatibility() {
 async function initializeApp(modules) {
     const { db, intelligence: IntelligenceManager, analytics: AnalyticsManager, notifications: NotificationManager } = modules;
     
-    // Inicializar sistemas
-    intelligence = new IntelligenceManager();
-    analytics = new AnalyticsManager();
-    notifications = new NotificationManager();
+    // Inicializar sistemas (com verificação de disponibilidade)
+    if (IntelligenceManager) {
+        intelligence = new IntelligenceManager();
+    }
+    if (AnalyticsManager) {
+        analytics = new AnalyticsManager();
+    }
+    if (NotificationManager) {
+        notifications = new NotificationManager();
+    }
     
     // Configurar eventos
     setupEventListeners(db);
@@ -107,6 +169,174 @@ async function initializeApp(modules) {
     setupPWA();
     
     console.log('App inicializado com sucesso!');
+}
+
+// ===== CARREGAMENTO INICIAL DE DADOS =====
+async function loadInitialData(db) {
+    try {
+        currentItems = await db.dbGetItems();
+        await refreshList(db);
+        updateStats();
+    } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        showError('Erro ao carregar dados salvos');
+    }
+}
+
+async function refreshList(db) {
+    const shoppingList = document.getElementById('shopping-list');
+    if (!shoppingList) return;
+    
+    currentItems = await db.dbGetItems();
+    
+    if (currentItems.length === 0) {
+        shoppingList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🛒</div>
+                <p>Sua lista está vazia</p>
+                <p class="empty-state-subtitle">Adicione itens usando o campo acima</p>
+            </div>
+        `;
+    } else {
+        shoppingList.innerHTML = currentItems.map(item => createItemElement(item).outerHTML).join('');
+    }
+    
+    updateStats();
+}
+
+function updateStats() {
+    const totalItems = currentItems.length;
+    const completedItems = currentItems.filter(item => item.bought).length;
+    const totalValue = currentItems.reduce((sum, item) => sum + (item.price || 0) * (item.qty || 1), 0);
+    
+    const totalItemsEl = document.getElementById('total-items');
+    const completedItemsEl = document.getElementById('completed-items');
+    const totalValueEl = document.getElementById('total-value');
+    const mainListCountEl = document.getElementById('main-list-count');
+    
+    if (totalItemsEl) totalItemsEl.textContent = totalItems;
+    if (completedItemsEl) completedItemsEl.textContent = completedItems;
+    if (totalValueEl) totalValueEl.textContent = `R$ ${totalValue.toFixed(2)}`;
+    if (mainListCountEl) mainListCountEl.textContent = totalItems;
+}
+
+function handleItemToggle(db) {
+    return async (e) => {
+        if (e.target.classList.contains('item-checkbox')) {
+            const itemId = e.target.dataset.itemId;
+            const checked = e.target.checked;
+            
+            try {
+                await db.dbUpdateItem(itemId, { bought: checked });
+                
+                // Atualizar visual do item
+                const itemEl = e.target.closest('.shopping-item');
+                if (itemEl) {
+                    itemEl.classList.toggle('completed', checked);
+                    const itemName = itemEl.querySelector('.item-name');
+                    if (itemName) {
+                        if (checked) {
+                            itemName.style.textDecoration = 'line-through';
+                            itemName.style.opacity = '0.6';
+                        } else {
+                            itemName.style.textDecoration = 'none';
+                            itemName.style.opacity = '1';
+                        }
+                    }
+                }
+                
+                updateStats();
+                
+                if (analytics) {
+                    analytics.trackItemToggle(itemId, checked);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao atualizar item:', error);
+                e.target.checked = !checked; // Reverter estado
+                showError('Erro ao atualizar item');
+            }
+        }
+    };
+}
+
+function handleItemActions(db) {
+    return async (e) => {
+        const deleteBtn = e.target.closest('.delete-item-btn');
+        const editBtn = e.target.closest('.edit-item-btn');
+        
+        if (deleteBtn) {
+            const itemId = deleteBtn.dataset.itemId;
+            if (confirm('Deseja remover este item da lista?')) {
+                try {
+                    await db.dbDeleteItem(itemId);
+                    await refreshList(db);
+                    showSuccessToast('Item removido da lista');
+                } catch (error) {
+                    console.error('Erro ao remover item:', error);
+                    showError('Erro ao remover item');
+                }
+            }
+        }
+        
+        if (editBtn) {
+            const itemId = editBtn.dataset.itemId;
+            await editItem(db, itemId);
+        }
+    };
+}
+
+async function editItem(db, itemId) {
+    const item = await db.dbGetItemById(itemId);
+    if (!item) return;
+    
+    const newName = prompt('Editar item:', item.name);
+    if (newName && newName.trim() && newName.trim() !== item.name) {
+        try {
+            await db.dbUpdateItem(itemId, { name: newName.trim() });
+            await refreshList(db);
+            showSuccessToast('Item atualizado');
+        } catch (error) {
+            console.error('Erro ao editar item:', error);
+            showError('Erro ao editar item');
+        }
+    }
+}
+
+async function clearAllItems(db) {
+    if (!db && typeof dbDeleteItem === 'undefined') {
+        console.error('Banco de dados não disponível');
+        showError('Erro: banco de dados não disponível');
+        return;
+    }
+    
+    if (currentItems.length === 0) {
+        showSuccessToast('Lista já está vazia');
+        return;
+    }
+    
+    if (confirm('Deseja limpar toda a lista? Esta ação não pode ser desfeita.')) {
+        try {
+            for (const item of currentItems) {
+                if (db) {
+                    await db.dbDeleteItem(item.id);
+                } else {
+                    await dbDeleteItem(item.id);
+                }
+            }
+            
+            currentItems = [];
+            await refreshList(db);
+            showSuccessToast('Lista limpa com sucesso');
+            
+            if (analytics) {
+                analytics.trackListClear();
+            }
+        } catch (error) {
+            console.error('Erro ao limpar lista:', error);
+            showError('Erro ao limpar lista');
+        }
+    }
 }
 
 // ===== GERENCIAMENTO DE ITENS INTELIGENTE =====
@@ -241,12 +471,11 @@ function showSuggestions(suggestions) {
 
 async function addItemFromInput(db) {
     const itemInput = document.getElementById('item-input');
-    const categorySelect = document.getElementById('category-select');
     
     if (!itemInput || !itemInput.value.trim()) return;
     
     const itemName = itemInput.value.trim();
-    const category = categorySelect?.value || categorizeItem(itemName);
+    const category = categorizeItem(itemName);
     
     const newItem = {
         name: itemName,
@@ -265,7 +494,10 @@ async function addItemFromInput(db) {
         
         // Limpar input
         itemInput.value = '';
-        document.getElementById('autocomplete-list').style.display = 'none';
+        const autocompleteList = document.getElementById('autocomplete-list');
+        if (autocompleteList) {
+            autocompleteList.style.display = 'none';
+        }
         
         // Atualizar interface
         await refreshList(db);
@@ -296,8 +528,17 @@ function showToast(message, type = 'info') {
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
     
-    // Adicionar ao DOM
-    document.body.appendChild(toast);
+    // Buscar ou criar container de toasts
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Adicionar ao container
+    toastContainer.appendChild(toast);
     
     // Animar entrada
     setTimeout(() => toast.classList.add('show'), 100);
@@ -305,7 +546,11 @@ function showToast(message, type = 'info') {
     // Remover após 3 segundos
     setTimeout(() => {
         toast.classList.remove('show');
-        setTimeout(() => document.body.removeChild(toast), 300);
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
     }, 3000);
 }
 
@@ -415,54 +660,113 @@ function setupPWA() {
 
 // ===== CONTROLE DA SIDEBAR =====
 function setupSidebar() {
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarClose = document.getElementById('sidebar-close');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    console.log('setupSidebar iniciado');
+    
+    // Usar timeout para garantir que DOM está totalmente carregado
+    setTimeout(() => {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarClose = document.getElementById('sidebar-close');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-    function toggleSidebar() {
-        console.log('toggleSidebar chamado - abrindo sidebar');
-        sidebar.classList.toggle('open');
-        sidebar.classList.remove('closed');
-        sidebarOverlay.classList.toggle('show');
-        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-        
-        // Esconde o botão quando a sidebar está aberta
-        if (sidebar.classList.contains('open')) {
-            sidebarToggle.classList.add('hidden');
-        }
-    }
-
-    function closeSidebar() {
-        console.log('closeSidebar chamado - fechando sidebar');
-        sidebar.classList.remove('open');
-        sidebar.classList.add('closed');
-        sidebarOverlay.classList.remove('show');
-        document.body.style.overflow = '';
-        
-        // Mostra o botão quando a sidebar é fechada
-        sidebarToggle.classList.remove('hidden');
-    }
-
-    // Torna a função global para ser acessível de outros arquivos
-    window.closeSidebar = closeSidebar;
-
-    // Event listeners para sidebar
-    sidebarToggle?.addEventListener('click', () => {
-        console.log('Botão hamburger clicado!');
-        toggleSidebar();
-    });
-
-    if (sidebarClose) {
-        sidebarClose.addEventListener('click', () => {
-            closeSidebar();
+        // Debug: verificar se os elementos existem
+        console.log('Elementos encontrados:', {
+            sidebarToggle: !!sidebarToggle,
+            sidebar: !!sidebar,
+            sidebarClose: !!sidebarClose,
+            sidebarOverlay: !!sidebarOverlay
         });
-    }
 
-    sidebarOverlay?.addEventListener('click', () => {
-        console.log('Overlay clicado!');
-        closeSidebar();
-    });
+        if (!sidebarToggle) {
+            console.error('ERRO: Botão sidebar-toggle não encontrado!');
+            return;
+        }
+
+        if (!sidebar) {
+            console.error('ERRO: Elemento sidebar não encontrado!');
+            return;
+        }
+
+        function toggleSidebar() {
+            console.log('toggleSidebar chamado');
+            
+            const isOpen = sidebar.classList.contains('open');
+            console.log('Sidebar está aberta:', isOpen);
+            
+            if (isOpen) {
+                // Fechar sidebar
+                sidebar.classList.remove('open');
+                sidebar.classList.add('closed');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+                document.body.style.overflow = '';
+                if (sidebarToggle) sidebarToggle.classList.remove('hidden');
+            } else {
+                // Abrir sidebar
+                sidebar.classList.add('open');
+                sidebar.classList.remove('closed');
+                if (sidebarOverlay) sidebarOverlay.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                if (sidebarToggle) sidebarToggle.classList.add('hidden');
+            }
+            
+            console.log('Sidebar classes após toggle:', Array.from(sidebar.classList));
+        }
+
+        function closeSidebar() {
+            console.log('closeSidebar chamado');
+            sidebar.classList.remove('open');
+            sidebar.classList.add('closed');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+            document.body.style.overflow = '';
+            if (sidebarToggle) sidebarToggle.classList.remove('hidden');
+        }
+
+        // Tornar funções globais
+        window.closeSidebar = closeSidebar;
+        window.toggleSidebar = toggleSidebar;
+
+        // Adicionar event listener principal
+        console.log('Adicionando event listener ao botão hamburger...');
+        sidebarToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🍔 BOTÃO HAMBURGER CLICADO!');
+            toggleSidebar();
+        });
+
+        // Adicionar múltiplos tipos de eventos para garantir funcionamento
+        sidebarToggle.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log('Touch start no botão hamburger');
+            toggleSidebar();
+        });
+
+        sidebarToggle.addEventListener('mousedown', function(e) {
+            console.log('Mouse down no botão hamburger');
+        });
+
+        // Event listener para fechar sidebar
+        if (sidebarClose) {
+            sidebarClose.addEventListener('click', closeSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Marcar como configurado
+        sidebarToggle.setAttribute('data-configured', 'true');
+        console.log('✅ Sidebar configurado com sucesso!');
+        
+        // Teste inicial
+        console.log('Testando visibilidade do botão:', {
+            display: window.getComputedStyle(sidebarToggle).display,
+            visibility: window.getComputedStyle(sidebarToggle).visibility,
+            opacity: window.getComputedStyle(sidebarToggle).opacity,
+            zIndex: window.getComputedStyle(sidebarToggle).zIndex
+        });
+
+    }, 100);
 
     // Event delegation para navegação da sidebar
     document.body.addEventListener('click', (e) => {
@@ -470,10 +774,9 @@ function setupSidebar() {
         if (navItem && navItem.hasAttribute('data-section')) {
             e.preventDefault();
             const sectionId = navItem.getAttribute('data-section');
-            if (sectionId) {
-                // Fecha sidebar no mobile
-                if (window.innerWidth < 1024) {
-                    closeSidebar();
+            if (sectionId && window.innerWidth < 1024) {
+                if (window.closeSidebar) {
+                    window.closeSidebar();
                 }
             }
         }
@@ -482,7 +785,7 @@ function setupSidebar() {
 
 // ===== ATALHOS DE TECLADO =====
 function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', async (e) => {
         // Ctrl/Cmd + N: Novo item
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
@@ -492,13 +795,19 @@ function setupKeyboardShortcuts() {
         // Ctrl/Cmd + K: Limpar lista
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
-            clearAllItems();
+            const db = await import('./db.js');
+            await clearAllItems(db);
         }
         
         // Escape: Fechar sugestões/modal
         if (e.key === 'Escape') {
-            document.getElementById('autocomplete-list').style.display = 'none';
-            closeSidebar();
+            const autocompleteList = document.getElementById('autocomplete-list');
+            if (autocompleteList) {
+                autocompleteList.style.display = 'none';
+            }
+            if (typeof closeSidebar === 'function') {
+                closeSidebar();
+            }
         }
     });
 }
@@ -508,7 +817,75 @@ window.ListouApp = {
     addItem: addItemFromInput,
     clearList: clearAllItems,
     shareList,
-    exportList
+    exportList,
+    toggleSidebar: () => {
+        if (window.toggleSidebar) {
+            window.toggleSidebar();
+        } else {
+            console.error('toggleSidebar não está disponível');
+        }
+    },
+    testSidebar: () => {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        console.log('Teste do Sidebar:', {
+            toggleButton: !!sidebarToggle,
+            sidebar: !!sidebar,
+            toggleVisible: sidebarToggle ? window.getComputedStyle(sidebarToggle).display !== 'none' : false,
+            sidebarClasses: sidebar ? Array.from(sidebar.classList) : 'N/A'
+        });
+        
+        if (sidebarToggle) {
+            console.log('Simulando clique no botão...');
+            sidebarToggle.click();
+        }
+    }
 };
 
 console.log('Listou App carregado com sucesso!');
+
+// ===== FUNÇÃO DE TESTE GLOBAL =====
+window.testSidebarDirect = function() {
+    console.log('🧪 Teste direto do sidebar...');
+    
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    
+    if (!sidebar) {
+        console.error('❌ Sidebar não encontrada!');
+        alert('Erro: Sidebar não encontrada!');
+        return;
+    }
+    
+    console.log('Estado atual da sidebar:', {
+        classes: Array.from(sidebar.classList),
+        isOpen: sidebar.classList.contains('open')
+    });
+    
+    // Toggle direto
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        sidebar.classList.add('closed');
+        document.body.style.overflow = '';
+        alert('Sidebar fechada!');
+    } else {
+        sidebar.classList.add('open');
+        sidebar.classList.remove('closed');
+        document.body.style.overflow = 'hidden';
+        alert('Sidebar aberta!');
+    }
+    
+    // Informações sobre o botão hamburger
+    if (sidebarToggle) {
+        const computedStyle = window.getComputedStyle(sidebarToggle);
+        console.log('Estado do botão hamburger:', {
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            zIndex: computedStyle.zIndex,
+            position: computedStyle.position,
+            top: computedStyle.top,
+            left: computedStyle.left
+        });
+    }
+};

@@ -385,33 +385,6 @@ function initInterface() {
         }
     });
 
-    // Botão de alternância de tema
-    const themeBtn = document.createElement('button');
-    themeBtn.id = 'theme-toggle-btn';
-    themeBtn.innerHTML = '🌓';
-    themeBtn.title = 'Alternar tema claro/escuro';
-    themeBtn.style.cssText = `
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 2000;
-        background: var(--color-surface);
-        color: var(--color-text);
-        border: 1px solid var(--color-border);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        cursor: pointer;
-        box-shadow: var(--shadow-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        transition: all 0.2s ease;
-    `;
-    themeBtn.addEventListener('click', toggleTheme);
-    document.body.appendChild(themeBtn);
-
     // Aplica o tema salvo
     const saved = localStorage.getItem('listou-theme');
     setTheme(saved === 'light' ? 'light' : 'dark');

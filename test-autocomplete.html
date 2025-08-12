@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Autocomplete - Listou</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .input-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #test-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        #test-input:focus {
+            border-color: #3b82f6;
+        }
+        /* Incluir estilos do autocomplete */
+        #autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        #autocomplete-list.autocomplete-hidden {
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 0;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+            color: #1e293b;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.autocomplete-selected {
+            background: #f8fafc;
+            color: #3b82f6;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            min-height: 52px;
+        }
+        .autocomplete-item-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .autocomplete-icon {
+            font-size: 20px;
+            line-height: 1;
+            min-width: 24px;
+            text-align: center;
+        }
+        .autocomplete-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .autocomplete-name {
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 1.4;
+            color: inherit;
+        }
+        .autocomplete-category {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: capitalize;
+            font-weight: 400;
+        }
+        .autocomplete-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .autocomplete-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: #059669;
+            background: #ecfdf5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .autocomplete-source {
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        .demo-info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #0284c7;
+            margin-bottom: 20px;
+        }
+        .demo-info h3 {
+            margin: 0 0 8px 0;
+            color: #0284c7;
+        }
+        .demo-info p {
+            margin: 0;
+            color: #0369a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="demo-info">
+            <h3>🔍 Teste do Sistema de Sugestões</h3>
+            <p>Digite qualquer produto (ex: banana, arroz, detergente) para ver as sugestões inteligentes funcionando!</p>
+        </div>
+        
+        <div class="input-container">
+            <input id="test-input" type="text" placeholder="Digite um produto..." autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-hidden"></div>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        // Importar módulo de intelligence
+        import { IntelligenceManager } from './intelligence.js';
+        
+        // Inicializar o sistema
+        const intelligence = new IntelligenceManager();
+        const input = document.getElementById('test-input');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        const result = document.getElementById('result');
+        
+        // Função debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Mostrar autocomplete
+        function showAutocomplete(suggestions) {
+            if (!autocompleteList || suggestions.length === 0) {
+                hideAutocomplete();
+                return;
+            }
+            
+            autocompleteList.innerHTML = '';
+            suggestions.forEach((suggestion, index) => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                
+                const price = suggestion.price > 0 ? `R$ ${suggestion.price.toFixed(2).replace('.', ',')}` : '';
+                const sourceIcon = suggestion.source === 'history' ? '🕒' : '🏪';
+                const frequencyText = suggestion.frequency > 1 ? ` (${suggestion.frequency}x)` : '';
+                
+                item.innerHTML = `
+                    <div class="autocomplete-item-content">
+                        <div class="autocomplete-item-main">
+                            <span class="autocomplete-icon">${suggestion.icon}</span>
+                            <div class="autocomplete-text">
+                                <span class="autocomplete-name">${suggestion.name}</span>
+                                <span class="autocomplete-category">${suggestion.category}${frequencyText}</span>
+                            </div>
+                        </div>
+                        <div class="autocomplete-item-meta">
+                            ${price ? `<span class="autocomplete-price">${price}</span>` : ''}
+                            <span class="autocomplete-source" title="${suggestion.source === 'history' ? 'Do seu histórico' : 'Produto sugerido'}">${sourceIcon}</span>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => {
+                    input.value = suggestion.name;
+                    hideAutocomplete();
+                    result.innerHTML = `<div style="background: #dcfce7; padding: 10px; border-radius: 6px; color: #166534; margin-top: 10px;">
+                        ✅ Produto selecionado: <strong>${suggestion.name}</strong> (${suggestion.category})
+                    </div>`;
+                });
+                
+                autocompleteList.appendChild(item);
+            });
+            
+            autocompleteList.classList.remove('autocomplete-hidden');
+        }
+        
+        // Esconder autocomplete
+        function hideAutocomplete() {
+            if (autocompleteList) {
+                autocompleteList.classList.add('autocomplete-hidden');
+            }
+        }
+        
+        // Event listeners
+        input.addEventListener('input', debounce((e) => {
+            const query = e.target.value.trim();
+            
+            if (query.length >= 1) {
+                const suggestions = intelligence.getAutocompleteSuggestions(query);
+                showAutocomplete(suggestions);
+                
+                // Mostrar info sobre as sugestões
+                if (suggestions.length > 0) {
+                    result.innerHTML = `<div style="background: #f0f9ff; padding: 10px; border-radius: 6px; color: #075985; margin-top: 10px;">
+                        💡 ${suggestions.length} sugestão(ões) encontrada(s) para "${query}"
+                    </div>`;
+                }
+            } else {
+                hideAutocomplete();
+                result.innerHTML = '';
+            }
+        }, 200));
+        
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                hideAutocomplete();
+            }, 150);
+        });
+        
+        console.log('🔍 Sistema de teste de autocomplete carregado!');
+        console.log('Base de produtos disponível:', Object.keys(intelligence.constructor.prototype.constructor.PRODUCT_DATABASE || {}).length);
+    </script>
+</body>
+</html>
