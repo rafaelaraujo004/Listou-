@@ -4,7 +4,7 @@
     "description": "Lista de compras inteligente com controle de gastos, comparação de preços e análises personalizadas. Organize suas compras de forma simples e eficiente.",
     "start_url": "/",
     "scope": "/",
-    "id": "/",
+    "id": "app.vercel.listou_phi.twa",
     "display": "standalone",
     "orientation": "portrait-primary",
     "background_color": "#0a0b0d",
@@ -12,8 +12,28 @@
     "lang": "pt-BR",
     "dir": "ltr",
     "categories": ["shopping", "productivity", "lifestyle"],
-    "iarc_rating_id": "",
     "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    },
+    "edge_side_panel": {
+        "preferred_width": 400
+    },
+    "protocol_handlers": [
+        {
+            "protocol": "web+listou",
+            "url": "/?action=%s"
+        }
+    ],
+    "file_handlers": [
+        {
+            "action": "/",
+            "accept": {
+                "text/csv": [".csv"],
+                "application/json": [".json"]
+            }
+        }
+    ],
     "screenshots": [
         {
             "src": "screenshot-mobile.png",

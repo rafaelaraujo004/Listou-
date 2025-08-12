@@ -698,5 +698,86 @@
     <script src="app.js" type="module"></script>
     <!-- Script para dados de demonstração - remover em produção -->
     <script src="supermarket-demo-data.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Registrar Service Worker para funcionalidade PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+                    
+                    // Registrar background sync se suportado
+                    if ('sync' in window.ServiceWorkerRegistration.prototype) {
+                        await registration.sync.register('sync-lists');
+                        console.log('✅ Background sync registrado');
+                    }
+                    
+                    // Registrar periodic sync se suportado
+                    if ('periodicSync' in window.ServiceWorkerRegistration.prototype) {
+                        const status = await navigator.permissions.query({
+                            name: 'periodic-background-sync',
+                        });
+                        if (status.state === 'granted') {
+                            await registration.periodicSync.register('update-data', {
+                                minInterval: 24 * 60 * 60 * 1000, // 24 horas
+                            });
+                            console.log('✅ Periodic sync registrado');
+                        }
+                    }
+                    
+                    // Listener para atualizações do SW
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Nova versão disponível
+                                if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.log('❌ Falha ao registrar Service Worker:', error);
+                }
+            });
+        }
+        
+        // Listener para quando o app volta online
+        window.addEventListener('online', async () => {
+            console.log('🌐 App voltou online - iniciando sync');
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                const registration = await navigator.serviceWorker.ready;
+                if ('sync' in window.ServiceWorkerRegistration.prototype) {
+                    await registration.sync.register('sync-lists');
+                    await registration.sync.register('sync-purchases');
+                }
+            }
+        });
+        
+        // Listener para quando o app fica offline
+        window.addEventListener('offline', () => {
+            console.log('📱 App está offline - modo offline ativo');
+            // Mostrar indicador de offline se necessário
+            const offlineIndicator = document.createElement('div');
+            offlineIndicator.id = 'offline-indicator';
+            offlineIndicator.innerHTML = '📱 Modo Offline';
+            offlineIndicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: #ff6b6b;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 10000;
+            `;
+            document.body.appendChild(offlineIndicator);
+        });
+    </script>
 </body>
 </html>
