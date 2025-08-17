@@ -1,7 +1,22 @@
 # ASSINAR AAB - Script simplificado
 # Data: 12 de agosto de 2025
 
-Write-Host "===================================================" -ForegroundColor Green
+Write-Host "===========# Comando para assinar
+$sign        Write-Host "Keystore usado: $keystorePath" -ForegroundColor Blue
+        Write-Host "Alias da chave: upload-key" -ForegroundColor Blue
+        Write-Host "`nProximo passo:" -ForegroundColor Yellow
+        Write-Host "1. Configure Play App Signing no Google Play Console" -ForegroundColor Green
+        Write-Host "2. Faca upload do certificado de upload (gerar com .\resolver-chave-incorreta.ps1)" -ForegroundColor Green
+        Write-Host "3. Faca upload do arquivo '$outputFile' para o Google Play Console" -ForegroundColor Green
+        Write-Host "4. Va em: https://play.google.com/console/" -ForegroundColor Blue
+        Write-Host "5. Selecione seu app > Release > Production > Create new release" -ForegroundColor Blue
+        Write-Host "6. Faca upload do AAB assinado" -ForegroundColor Blue
+        
+        # Informacoes adicionais
+        Write-Host "`nINFORMACOES IMPORTANTES:" -ForegroundColor Yellow
+        Write-Host "- Senha do keystore: ListouApp2025!@#" -ForegroundColor Gray
+        Write-Host "- Alias da chave: upload-key" -ForegroundColor Grayrsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$keystorePath" -storepass "ListouApp2025!@#" "$inputFile" "upload-key"
+"@====================================" -ForegroundColor Green
 Write-Host "              ASSINAR ARQUIVO AAB                  " -ForegroundColor Green
 Write-Host "===================================================" -ForegroundColor Green
 
@@ -41,19 +56,19 @@ try {
 
 # Criar keystore se nao existir
 Write-Host "`n3. Verificando/Criando keystore..." -ForegroundColor Yellow
-$keystorePath = ".\listou-release.jks"
+$keystorePath = ".\upload-keystore.jks"
 
 if (-not (Test-Path $keystorePath)) {
-    Write-Host "Criando novo keystore..." -ForegroundColor Yellow
+    Write-Host "Criando novo keystore para Play App Signing..." -ForegroundColor Yellow
     
-    # Configuracoes do keystore
-    $alias = "listou-key"
-    $storepass = "listou123456"
-    $keypass = "listou123456"
+    # Configuracoes do keystore - CERTIFICADO DE UPLOAD
+    $alias = "upload-key"
+    $storepass = "ListouApp2025!@#"
+    $keypass = "ListouApp2025!@#"
     
     # Criar keystore
     $createKeystoreCmd = @"
-keytool -genkey -v -keystore "$keystorePath" -alias "$alias" -keyalg RSA -keysize 2048 -validity 10000 -storepass "$storepass" -keypass "$keypass" -dname "CN=Listou App, OU=Development, O=Listou, L=Cidade, ST=Estado, C=BR"
+keytool -genkey -v -keystore "$keystorePath" -alias "$alias" -keyalg RSA -keysize 2048 -validity 25000 -storepass "$storepass" -keypass "$keypass" -dname "CN=Listou Upload Certificate, OU=Development, O=Listou, L=Cidade, ST=Estado, C=BR"
 "@
     
     Write-Host "Criando keystore..." -ForegroundColor Blue
@@ -92,7 +107,7 @@ try {
 
 # Comando para assinar
 $signCmd = @"
-jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$keystorePath" -storepass "listou123456" "$inputFile" "listou-key"
+jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$keystorePath" -storepass "ListouApp2025!@#" "$inputFile" "listou-key-v2"
 "@
 
 Write-Host "Assinando AAB..." -ForegroundColor Blue
@@ -117,7 +132,7 @@ try {
         Write-Host "===================================================" -ForegroundColor Green
         Write-Host "Arquivo AAB assinado: $outputFile" -ForegroundColor Blue
         Write-Host "Keystore usado: $keystorePath" -ForegroundColor Blue
-        Write-Host "Alias da chave: listou-key" -ForegroundColor Blue
+        Write-Host "Alias da chave: listou-key-v2" -ForegroundColor Blue
         Write-Host "`nProximo passo:" -ForegroundColor Yellow
         Write-Host "1. Faca upload do arquivo '$outputFile' para o Google Play Console" -ForegroundColor Green
         Write-Host "2. Va em: https://play.google.com/console/" -ForegroundColor Blue
@@ -126,8 +141,8 @@ try {
         
         # Informacoes adicionais
         Write-Host "`nINFORMACOES IMPORTANTES:" -ForegroundColor Yellow
-        Write-Host "- Senha do keystore: listou123456" -ForegroundColor Gray
-        Write-Host "- Alias da chave: listou-key" -ForegroundColor Gray
+        Write-Host "- Senha do keystore: ListouApp2025!@#" -ForegroundColor Gray
+        Write-Host "- Alias da chave: listou-key-v2" -ForegroundColor Gray
         Write-Host "- GUARDE ESSAS INFORMACOES COM SEGURANCA!" -ForegroundColor Red
         Write-Host "- Voce precisara do mesmo keystore para futuras atualizacoes." -ForegroundColor Red
         
