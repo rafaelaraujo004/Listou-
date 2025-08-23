@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Listou — Lista de Compras Inteligente</title>
+  <link rel="icon" href="./logo.png" type="image/png">
+  <link rel="preload" as="image" href="./logo.png">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/@zxing/browser@latest"></script>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body class="min-h-screen text-slate-100 flex">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-72 max-w-full glass border-r p-4 space-y-4 hidden md:block elev">
+  <!-- Botão fechar sidebar mobile -->
+  <button id="closeSidebar" class="close-sidebar-btn absolute top-3 left-3 md:hidden hidden" aria-label="Fechar menu">✕</button>
+    <div class="flex flex-col items-center justify-center gap-2 mb-2 mt-1" style="min-height:60px;">
+      <h2 class="text-xl font-bold text-center w-full flex items-center justify-center" style="height:40px;">Listou</h2>
+      <span class="text-[11px] muted" id="appVersion"></span>
+    </div>
+    <nav class="flex flex-col gap-1 w-full mt-2">
+  <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="lista"><span class="icon-svg icon-blue" aria-label="Lista"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#2196F3" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="14" height="2" rx="1"/><rect x="3" y="9" width="14" height="2" rx="1"/><rect x="3" y="14" width="14" height="2" rx="1"/></svg> </span> Lista</button>
+  <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="insights"><span class="icon-svg icon-green" aria-label="Insights"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#2ECC71" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="13" width="2" height="4" rx="1"/><rect x="8" y="9" width="2" height="8" rx="1"/><rect x="13" y="5" width="2" height="12" rx="1"/></svg> </span> Insights</button>
+  <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="relatorios"><span class="icon-svg icon-orange" aria-label="Relatórios"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#FF9800" xmlns="http://www.w3.org/2000/svg"><polyline points="3,17 8,10 13,14 17,5" stroke="#FF9800" stroke-width="2" fill="none"/></svg> </span> Relatórios</button>
+  <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="sugestoes"><span class="icon-svg icon-purple" aria-label="Sugestões & Listas"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#9C27B0" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="7" fill="#9C27B0"/><rect x="9" y="5" width="2" height="6" fill="#fff"/><rect x="9" y="12" width="2" height="3" fill="#fff"/></svg> </span> Sugestões & Listas</button>
+  <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="config"><span class="icon-svg icon-gray" aria-label="Configuração"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#455A64" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="3" fill="#455A64"/><path d="M10 2v2M10 16v2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M2 10h2M16 10h2M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="#455A64" stroke-width="1.5"/></svg> </span> Config</button>
+    </nav>
+    <div id="sidebarFooter" class="mt-8 pt-4 border-t flex flex-col items-center gap-1" style="border-color:var(--ring)">
+      <div class="text-xs muted">Versão: <span id="appVersionSide">00000049</span></div>
+      <div class="text-xs muted">Desenvolvido por <strong>Rafael Araújo</strong></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-4 md:p-6 overflow-y-auto w-full">
+    <!-- Mobile top bar -->
+    <div class="md:hidden mb-4 flex items-center gap-2">
+      <button id="toggleSidebar" class="hamburger-btn px-2 py-1 rounded-md bg-white/10 text-lg">☰</button>
+      <div class="flex-1 flex justify-center">
+        <div class="flex items-center gap-2">
+          <svg width="56" height="56" viewBox="0 0 128 128" aria-label="Logo Listou" style="min-width:56px;min-height:56px;">
+            <!-- Fundo azul arredondado -->
+            <rect x="0" y="0" width="128" height="128" rx="28" fill="#60a5fa"/>
+            <!-- Prancheta -->
+            <rect x="40" y="32" width="48" height="64" rx="6" fill="#f8fafc"/>
+            <rect x="58" y="28" width="12" height="8" rx="2" fill="#64748b" opacity="0.7"/>
+            <rect x="60" y="30" width="8" height="4" rx="1" fill="#94a3b8" opacity="0.8"/>
+            <rect x="44" y="40" width="40" height="52" rx="3" fill="#fff"/>
+            <circle cx="50" cy="50" r="4" fill="#34d399"/>
+            <path d="M48 50 L49.5 51.5 L52 49" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <rect x="58" y="48" width="20" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+            <circle cx="50" cy="62" r="4" fill="#34d399"/>
+            <path d="M48 62 L49.5 63.5 L52 61" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <rect x="58" y="60" width="18" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+            <circle cx="50" cy="74" r="4" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+            <rect x="58" y="72" width="16" height="2" rx="1" fill="#64748b" opacity="0.6"/>
+            <circle cx="50" cy="86" r="4" fill="#34d399"/>
+            <path d="M48 86 L49.5 87.5 L52 85" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <rect x="58" y="84" width="22" height="2" rx="1" fill="#94a3b8" opacity="0.4"/>
+          </svg>
+          <h1 class="text-lg font-semibold whitespace-nowrap">Listou</h1>
+        </div>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="themeToggle" class="px-3 py-2 rounded-lg bg-white/10 text-xs flex items-center justify-center" aria-label="Alternar tema">
+          <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" class="transition-transform duration-300 ease-out">
+            <g id="icon-sun">
+              <circle cx="12" cy="12" r="4" />
+              <g>
+                <line x1="12" y1="1" x2="12" y2="4" />
+                <line x1="12" y1="20" x2="12" y2="23" />
+                <line x1="1" y1="12" x2="4" y2="12" />
+                <line x1="20" y1="12" x2="23" y2="12" />
+                <line x1="4.2" y1="4.2" x2="6.3" y2="6.3" />
+                <line x1="17.7" y1="17.7" x2="19.8" y2="19.8" />
+                <line x1="4.2" y1="19.8" x2="6.3" y2="17.7" />
+                <line x1="17.7" y1="6.3" x2="19.8" y2="4.2" />
+              </g>
+            </g>
+            <g id="icon-moon">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </g>
+          </svg>
+        </button>
+        <div class="text-[11px] muted" id="appVersionTop"></div>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <section id="tab-lista" class="tab-section space-y-4">
+      <h1 class="text-2xl font-bold shopping-title">Sua Lista de Compras</h1>
+
+      <!-- Market & KPI cards -->
+      <div class="flex flex-wrap gap-3 items-center mt-1">
+        <div class="flex items-center gap-2 text-sm">
+          <label for="market" class="opacity-80">Mercado:</label>
+          <input id="market" class="px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)" placeholder="Ex.: Atacadão, Carrefour"/>
+          <button id="saveMarket" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs">Salvar</button>
+        </div>
+        <div class="ml-auto grid grid-cols-2 gap-3 w-full md:w-auto text-sm kpi-row">
+          <div class="kpi-card"><div class="kpi-label">Valor Previsto</div><div class="kpi-value" id="kpiPrevisto">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Valor Realizado</div><div class="kpi-value" id="kpiRealizado">—</div></div>
+        </div>
+      </div>
+
+      <!-- Add item -->
+      <div class="card rounded-2xl p-3 md:p-4">
+        <form id="addForm" class="grid grid-cols-12 gap-2" autocomplete="off">
+          <div class="col-span-12 md:col-span-4 relative">
+            <input id="name" class="w-full px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)" placeholder="Nome do item (clique para sugestões)" />
+            <div id="suggestions" class="absolute z-10 mt-1 w-full max-h-56 overflow-auto hidden glass rounded-xl p-2 text-sm"></div>
+          </div>
+          <select id="category" class="col-span-6 md:col-span-2 px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)">
+            <option>Laticínios</option><option>Hortifruti</option><option>Limpeza</option><option>Higiene</option><option>Bebidas</option><option>Carnes</option><option>Outros</option>
+          </select>
+          <select id="unit" class="col-span-6 md:col-span-2 px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)">
+            <option value="un">un</option><option value="kg">kg</option><option value="g">g</option><option value="L">L</option><option value="ml">ml</option><option value="pct">pct</option>
+          </select>
+          <input id="qty" type="number" step="1" min="1" value="1" class="col-span-6 md:col-span-2 px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)" placeholder="Qtd" />
+          <input id="price" type="number" step="0.01" min="0" class="col-span-6 md:col-span-2 px-3 py-2 rounded-xl bg-white/5 ring-1" style="border-color:var(--ring)" placeholder="Preço" />
+          <button class="col-span-12 md:col-span-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 font-medium">Adicionar</button>
+        </form>
+
+
+      </div>
+
+      <!-- Scanner & EAN manual -->
+  <!-- Seção de scanner removida -->
+
+      <!-- Table -->
+      <div class="card rounded-2xl p-3 md:p-4 shopping-list-area">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-xs muted" id="count">0 itens</span>
+          <div class="ml-auto flex items-center gap-2">
+            <select id="sort" class="px-2 py-2 rounded-xl bg-white/5 ring-1 text-xs" style="border-color:var(--ring)">
+              <option value="recent">Classificar</option>
+              <option value="name">Nome (A–Z)</option>
+              <option value="price">Preço (↑)</option>
+              <option value="subtotal">Subtotal (↑)</option>
+            </select>
+            <button id="copyList" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm">Copiar Lista</button>
+            <button id="finalizar" class="px-3 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-sm">Finalizar compra</button>
+          </div>
+        </div>
+        <div id="list" class="grid gap-2 grid-cols-1"></div>
+  <!-- Caixa de 'Total Geral' removida conforme solicitado -->
+        <div class="mt-2 text-xs muted" id="progress"></div>
+      </div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section id="tab-insights" class="tab-section hidden space-y-4">
+      <h1 class="text-2xl font-bold">Insights</h1>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card p-4"><p class="text-xs muted">Total atual</p><p id="kpiTotal" class="text-2xl font-bold">—</p></div>
+        <div class="card p-4"><p class="text-xs muted">Itens</p><p id="kpiItens" class="text-2xl font-bold">—</p></div>
+        <div class="card p-4"><p class="text-xs muted">Ticket médio</p><p id="kpiTicket" class="text-2xl font-bold">—</p></div>
+        <div class="card p-4"><p class="text-xs muted">Concluídos</p><p id="kpiDone" class="text-2xl font-bold">—</p></div>
+      </div>
+      <div class="grid lg:grid-cols-2 gap-6">
+  <div class="card p-4"><h3 class="font-semibold mb-2">Gasto por categoria</h3><canvas id="chartCategorias" height="140"></canvas></div>
+  <div class="card p-4"><h3 class="font-semibold mb-2">Curva ABC</h3><canvas id="chartABC" height="140"></canvas></div>
+      </div>
+    </section>
+
+    <!-- RELATÓRIOS -->
+    <section id="tab-relatorios" class="tab-section hidden space-y-4">
+  <h1 class="text-2xl font-bold">Relatórios</h1>
+  <p class="muted text-sm">Atualiza automaticamente ao finalizar uma compra.</p>
+  <div id="cheapestMarketBox" class="mb-4"></div>
+      <div class="grid md:grid-cols-2 gap-6 mb-4">
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Comparativo de mercados</h3>
+          <canvas id="chartMarketsTotal" height="140"></canvas>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Produtos mais baratos por mercado</h3>
+          <div id="cheapestProductsBox"></div>
+        </div>
+      </div>
+        <div class="card p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <h3 class="font-semibold">Comparação por mercado (item)</h3>
+            <select id="reportItemSelect" class="ml-auto px-2 py-1 rounded bg-white/5 ring-1" style="border-color:var(--ring)"></select>
+          </div>
+          <canvas id="chartItemMarket" height="140"></canvas>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Ranking de variação (∆% último vs anterior)</h3>
+          <canvas id="chartRankingVar" height="140"></canvas>
+        </div>
+  <div class="card p-4"><h3 class="font-semibold mb-2">Gastos por mês</h3><canvas id="chartGastosMes" height="140"></canvas></div>
+  <div class="card p-4"><h3 class="font-semibold mb-2">Frequência de itens</h3><canvas id="chartFreq" height="140"></canvas></div>
+      </div>
+    </section>
+
+    <!-- SUGESTÕES & LISTAS -->
+    <section id="tab-sugestoes" class="tab-section hidden space-y-4">
+<!-- Modal de edição de lista salva -->
+<div id="editUserListModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 hidden">
+  <div class="bg-slate-900 rounded-lg p-6 w-full max-w-lg shadow-lg relative">
+    <button id="closeEditUserListModal" class="absolute top-2 right-2 text-xl px-2 py-1 rounded hover:bg-white/10">✕</button>
+    <h2 class="text-lg font-bold mb-4">Editar itens da lista</h2>
+    <div id="editUserListItemsBox" class="space-y-2 mb-4"></div>
+    <button id="saveEditUserListBtn" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Salvar alterações</button>
+  </div>
+</div>
+      <h1 class="text-2xl font-bold">Sugestões & Listas</h1>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <!-- Card removido conforme solicitado -->
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Churrasco</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Carne","category":"Carnes","unit":"kg","qty":3},{"name":"Carvão","category":"Outros","unit":"kg","qty":5},{"name":"Refrigerante","category":"Bebidas","unit":"L","qty":6}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Limpeza do mês</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Detergente","category":"Limpeza","unit":"un","qty":4},{"name":"Sabão em pó","category":"Limpeza","unit":"kg","qty":2},{"name":"Água sanitária","category":"Limpeza","unit":"L","qty":2}]'>Adicionar</button>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Minhas listas</h3>
+          <div class="flex gap-2">
+            <button id="saveCurrentAsList" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm">Salvar lista atual</button>
+          </div>
+        </div>
+        <div id="userLists" class="flex flex-col gap-2"></div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="tab-config" class="tab-section hidden space-y-4">
+      <h1 class="text-2xl font-bold">Configurações</h1>
+  <label class="flex items-center gap-2"><input id="optCompact" type="checkbox" class="accent-emerald-500"> Modo compacto</label>
+  <button id="clearAllData" class="px-3 py-2 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white text-sm mt-2">Remover todos os dados do usuário</button>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Tema:</label>
+        <button id="themeToggle2" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm flex items-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" class="transition-transform duration-300 ease-out"><circle cx="12" cy="12" r="4"/></svg>
+          Alternar claro/escuro
+        </button>
+        <span class="text-xs muted" id="themeLabel">—</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+</body>
+</html>
