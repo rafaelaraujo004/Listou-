@@ -354,21 +354,28 @@ function upsertItem(partial){
       card.innerHTML =
         '<div class="flex items-start justify-between gap-2">'
         + '<div class="flex items-center gap-1 flex-1 min-w-0">'
+        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
         + '<input type="checkbox" data-i="'+idx+'" data-act="toggle" '+(it.done?'checked':'')+' class="accent-emerald-500 w-4 h-4 flex-shrink-0">'
         + '<span class="item-name flex-1 text-sm word-break-all '+(it.done?'line-through opacity-80 text-emerald-600 selected-item':'')+'" style="font-weight:bold; cursor:pointer;" data-i="'+idx+'" data-act="toggleByName">'+(it.name||'Item sem nome')+'</span>'
+        + '</div>'
+        + '<div class="item-actions">'
         + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
         + '</div>'
         + '</div>'
-        + '<div class="item-info-compact text-xs flex flex-row gap-1 items-center">'
-        +   '<span><span class="label">Qtd:</span> <input type="number" min="1" step="1" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1" /></span>'
-        +   '<span><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1" /></span>'
-        +   '<span><span class="label">Un.:</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1">'+
-          ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
-        '  </select></span>'
-        +   '<span><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1">'+
-          ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
-        '  </select></span>'
-        + '</div>';
+  + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
+  +   '<div class="flex flex-row gap-4 w-full justify-center">'
+  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="1" step="1" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
+  +   '</div>'
+  +   '<div class="flex flex-row gap-4 w-full justify-center">'
+  +     '<span class="flex flex-col items-center"><span class="label">Un.:</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
+  ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
+  '  </select></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
+  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
+  '  </select></span>'
+  +   '</div>'
+  + '</div>';
       listEl.appendChild(card);
     });
 
