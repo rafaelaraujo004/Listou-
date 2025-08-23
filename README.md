@@ -1,32 +1,22 @@
-## Listou
 
-Base PWA simples de lista de compras.
+# Listou (VS Code-ready)
 
-### Logo / Ícones
-Logo principal: `logo.svg`.
+## Estrutura
+- index.html
+- styles.css
+- app.js
+- assets/logo.svg
 
-Gerar PNGs para manifest (necessário para instalação em Android / Chrome):
+## Rodar localmente
+Abra o `index.html` no navegador ou use uma extensão de *Live Server* no VS Code.
 
-PowerShell (requer Inkscape ou ImageMagick instalado):
-```
-# Exemplo usando ImageMagick
-magick convert logo.svg -resize 192x192 icon-192.png
-magick convert logo.svg -resize 512x512 icon-512.png
-```
+- O tema acompanha o sistema automaticamente (prefers-color-scheme) e pode ser alternado manualmente pelo botão.
+- Há uma marca d'água sutil com a logo (não interfere nos cliques).
+- Prefixos de debug como `Teste`, `DEV`, `TMP` são ocultados na UI (sem quebrar os testes).
 
-### Roadmap breve
-- Leitura de QRCode (NFC-e) via ZXing / jsQR
-- Merge de itens da nota
-- Recursos premium (sync, múltiplos perfis, backup)
-- Build APK com Capacitor
+## Dependências
+- Tailwind via CDN
+- Chart.js via CDN
+- ZXing via CDN
 
-### Capacitor (futuro)
-```
-npm init -y
-npm install @capacitor/core @capacitor/cli
-npx cap init listou com.seu.dominio.listou
-# Configurar webDir para a pasta atual
-```
-
-### Desenvolvimento
-Abra com um Live Server / http-server simples e teste offline (instale como PWA).
+> Os dados ficam no localStorage do navegador.
