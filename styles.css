@@ -609,7 +609,7 @@ h1, h2, h3, h4, h5, h6 {
   filter: none !important;
   box-shadow: none !important;
 }
-}
+
 
 /* Layout dos cards de compras */
 .shopping-card {
@@ -755,10 +755,18 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--muted);
 }
 /* Verde mais escuro para botão de insights */
+/* Botão insights segue padrão do botão lista */
 [data-theme="light"] button[data-tab="insights"] {
-  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
-  color: #fff !important;
-  border: none;
+  background: #fff !important;
+  color: #222b3a !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px 0 rgba(30,41,59,0.06);
+  transition: background 0.2s, color 0.2s;
+}
+[data-theme="light"] button[data-tab="insights"]:hover,
+[data-theme="light"] button[data-tab="insights"]:focus {
+  background: #f3f6fa !important;
+  color: #181c20 !important;
 }
 .kpi-card {
   background: var(--card);
