@@ -102,6 +102,8 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize theme
   setTheme(currentTheme);
+        // ===== Sugestão "leitura de pensamento" =====
+        renderMindReadingSuggestions();
 
   // ===== Tabs =====
   // Adiciona evento ao botão de limpar dados
@@ -332,25 +334,64 @@ function upsertItem(partial){
 
   function render(){
     const sortSel = $('#sort'); const sort = sortSel ? sortSel.value : 'recent';
-    const view = items.slice();
-    view.sort((a,b)=>{
+    // Separar itens não comprados e comprados
+    const notDone = items.filter(i => !i.done);
+    const done = items.filter(i => i.done);
+    // Ordenar cada grupo
+    const sortFn = (a,b)=>{
       if(sort==='name') return (a.name||'').localeCompare(b.name||'');
       if(sort==='price') return (a.price||0)-(b.price||0);
       if(sort==='subtotal') return (a.qty*a.price)-(b.qty*b.price);
       return (b.createdAt||0)-(a.createdAt||0);
-    });
+    };
+    notDone.sort(sortFn);
+    done.sort(sortFn);
 
     listEl.innerHTML='';
     let previsto=0, realizado=0;
 
-    view.forEach((it)=>{
+    // Renderizar não comprados
+    notDone.forEach((it)=>{
       const idx = items.indexOf(it);
       const subtotal = (Number(it.qty)||0)*(Number(it.price)||0);
-      if(it.done){ realizado+=subtotal; } previsto+=subtotal;
-
-      // Layout de card compacto
+      previsto+=subtotal;
       const card = document.createElement('div');
       card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px]';
+      card.innerHTML =
+        '<div class="flex items-start justify-between gap-2">'
+        + '<div class="flex items-center gap-1 flex-1 min-w-0">'
+        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
+        + '<input type="checkbox" data-i="'+idx+'" data-act="toggle" '+(it.done?'checked':'')+' class="accent-emerald-500 w-4 h-4 flex-shrink-0">'
+        + '<span class="item-name flex-1 text-sm word-break-all '+(it.done?'line-through opacity-80 text-emerald-600 selected-item':'')+'" style="font-weight:bold; cursor:pointer;" data-i="'+idx+'" data-act="toggleByName">'+(it.name||'Item sem nome')+'</span>'
+        + '</div>'
+        + '<div class="item-actions">'
+        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
+        + '</div>'
+        + '</div>'
+  + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
+  +   '<div class="flex flex-row gap-4 w-full justify-center">'
+  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="1" step="1" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
+  +   '</div>'
+  +   '<div class="flex flex-row gap-4 w-full justify-center">'
+  +     '<span class="flex flex-col items-center"><span class="label">Un.:</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
+  ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
+  '  </select></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
+  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
+  '  </select></span>'
+  +   '</div>'
+  + '</div>';
+      listEl.appendChild(card);
+    });
+
+    // Renderizar comprados
+    done.forEach((it)=>{
+      const idx = items.indexOf(it);
+      const subtotal = (Number(it.qty)||0)*(Number(it.price)||0);
+      realizado+=subtotal;
+      const card = document.createElement('div');
+      card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px] opacity-70';
       card.innerHTML =
         '<div class="flex items-start justify-between gap-2">'
         + '<div class="flex items-center gap-1 flex-1 min-w-0">'
@@ -721,6 +762,78 @@ function upsertItem(partial){
     // testes simples de sanidade (dev)
     window.__listou = { items, history, suggestions, priceHistory, render, renderReports };
   }
+    // Sugestão "leitura de pensamento" baseada em padrões do usuário e itens atuais
+    function renderMindReadingSuggestions() {
+      let box = document.getElementById('mindReadingSuggestions');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'mindReadingSuggestions';
+        box.className = 'p-3 my-3 rounded-lg bg-emerald-900/10 text-emerald-900';
+        const parent = document.getElementById('listContainer') || listEl.parentElement;
+        if (parent) parent.insertBefore(box, parent.firstChild);
+      }
+      // Coletar nomes dos itens já na lista
+      const currentNames = new Set(items.map(i => (i.name||'').toLowerCase()));
+      // Frequência histórica dos itens
+        const freq = {};
+        history.forEach(h => h.items.forEach(i => {
+          const k = (i.name||'').toLowerCase();
+          if (!currentNames.has(k)) freq[k] = (freq[k]||0) + 1;
+        }));
+        // Exibe "lendo sua memória de compras..." com bola de cristal
+        box.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:15px;">'
+          +'<span style="font-size:1.6em;">🔮</span>'
+          +' <span class="muted">lendo sua memória de compras...</span>'
+          +'</div>';
+        setTimeout(()=>{
+          if (allSugs.length === 0) {
+            box.innerHTML = '<span class="muted">Nenhuma sugestão de compra baseada no seu histórico.</span>';
+            return;
+          }
+          box.innerHTML = '<b>🔮 Sugestões para você (baseado no seu histórico):</b><br>' +
+            allSugs.map(n => {
+              const meta = suggestions[n] || {};
+              const display = n.charAt(0).toUpperCase() + n.slice(1);
+              const hint = meta.lastPrice ? (' • ' + money(meta.lastPrice)) : '';
+              return `<button class=\"px-3 py-1 m-1 rounded-full bg-white/20 hover:bg-white/40\" style=\"font-size:13px;\" onclick=\"window.upsertItemFromSuggestion && window.upsertItemFromSuggestion('${n.replace(/'/g,"\\'")}')\">+ ${display}${hint}</button>`;
+            }).join(' ');
+        }, 900);
+      // Itens mais frequentes não presentes na lista atual
+      const top = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      // Também sugerir itens "combinados" (comprados juntos)
+      const combos = {};
+      history.forEach(h => {
+        const names = h.items.map(i => (i.name||'').toLowerCase());
+        names.forEach(n1 => {
+          if (!currentNames.has(n1)) {
+            names.forEach(n2 => {
+              if (currentNames.has(n2) && n1 !== n2) {
+                combos[n1] = (combos[n1]||0) + 1;
+              }
+            });
+          }
+        });
+      });
+      const comboTop = Object.entries(combos).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      // Unir sugestões
+      const allSugs = [...new Set([...top.map(x=>x[0]), ...comboTop.map(x=>x[0])])].filter(n=>n);
+      if (allSugs.length === 0) {
+        box.innerHTML = '<span class="muted">Nenhuma sugestão de compra baseada no seu histórico.</span>';
+        return;
+      }
+      box.innerHTML = '<b>💡 Sugestões para você (baseado no seu histórico):</b><br>' +
+        allSugs.map(n => {
+          const meta = suggestions[n] || {};
+          const display = n.charAt(0).toUpperCase() + n.slice(1);
+          const hint = meta.lastPrice ? (' • ' + money(meta.lastPrice)) : '';
+          return `<button class="px-3 py-1 m-1 rounded-full bg-white/20 hover:bg-white/40" style="font-size:13px;" onclick="window.upsertItemFromSuggestion && window.upsertItemFromSuggestion('${n.replace(/'/g,"\\'")}')">+ ${display}${hint}</button>`;
+        }).join(' ');
+    }
+    // Função global para adicionar sugestão
+    window.upsertItemFromSuggestion = function(name) {
+      const meta = suggestions[name] || {};
+      upsertItem({ name, category: meta.lastCategory||'Outros', unit: meta.lastUnit||'un', qty: 1, price: meta.lastPrice||0 });
+    }
   init();
 
 })();
