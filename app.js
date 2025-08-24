@@ -279,12 +279,59 @@ document.addEventListener('DOMContentLoaded', function() {
     entries.forEach(([rawName, meta])=>{
       const displayName = (window.__RUNNING_TESTS? rawName : rawName.replace(/^\s*(Teste|DEV|TMP)\s+/i,''));
       const hint = meta.lastPrice? (' • '+money(meta.lastPrice)) : '';
-      const btn = document.createElement('button');
-      btn.className='px-3 py-1 rounded-full bg-white/10 hover:bg-white/20';
-      btn.textContent = '+ ' + displayName + hint;
-      btn.title = (meta.lastUnit||'un') + ' • ' + (meta.lastCategory||'Outros');
-      btn.addEventListener('click', ()=> upsertItem({ name:rawName, category: meta.lastCategory||'Outros', unit: meta.lastUnit||'un', qty: 1, price: meta.lastPrice||0 }) );
-      wrap.appendChild(btn);
+      const card = document.createElement('div');
+      card.className = 'suggestion-card flex flex-col gap-1 p-2 mb-2 rounded shadow';
+      card.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="font-medium flex-1">${displayName}</span>
+          <button class="edit-btn" title="Editar">✏️</button>
+          <button class="remove-btn" title="Remover">🗑️</button>
+        </div>
+        <div class="list-meta text-xs">${(meta.lastUnit||'un')} • ${(meta.lastCategory||'Outros')} ${hint}</div>
+        <div class="suggest-actions flex gap-2 mt-1">
+          <button class="save-btn">Adicionar</button>
+        </div>
+      `;
+      // Adicionar evento de adicionar
+      card.querySelector('.save-btn').onclick = ()=> upsertItem({ name:rawName, category: meta.lastCategory||'Outros', unit: meta.lastUnit||'un', qty: 1, price: meta.lastPrice||0 });
+      // Evento de remover sugestão
+      card.querySelector('.remove-btn').onclick = ()=> {
+        if(confirm('Remover sugestão?')) {
+          delete suggestions[rawName];
+          save();
+          renderQuickChips();
+        }
+      };
+      // Evento de editar sugestão
+      card.querySelector('.edit-btn').onclick = ()=> {
+        // Troca para modo edição inline
+        card.innerHTML = `
+          <div class="flex items-center gap-2">
+            <input type="text" class="w-32" value="${displayName}" id="editName">
+            <input type="text" class="w-12" value="${meta.lastUnit||'un'}" id="editUnit">
+            <input type="text" class="w-20" value="${meta.lastCategory||'Outros'}" id="editCategory">
+            <input type="number" class="w-20" value="${meta.lastPrice||0}" id="editPrice" min="0" step="0.01">
+          </div>
+          <div class="suggest-actions flex gap-2 mt-1">
+            <button class="save-btn">Salvar</button>
+            <button class="cancel-btn">Cancelar</button>
+          </div>
+        `;
+        card.querySelector('.save-btn').onclick = ()=> {
+          const newName = card.querySelector('#editName').value.trim();
+          const newUnit = card.querySelector('#editUnit').value.trim();
+          const newCat = card.querySelector('#editCategory').value.trim();
+          const newPrice = Number(card.querySelector('#editPrice').value);
+          if(!newName) return alert('Nome obrigatório');
+          // Atualiza sugestão
+          delete suggestions[rawName];
+          suggestions[newName] = { lastUnit: newUnit, lastCategory: newCat, lastPrice: newPrice };
+          save();
+          renderQuickChips();
+        };
+        card.querySelector('.cancel-btn').onclick = ()=> renderQuickChips();
+      };
+      wrap.appendChild(card);
     });
   }
 
@@ -338,12 +385,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   
 function upsertItem(partial){
-      // Merge por nome (barcode removido)
+      // Merge por nome (case-insensitive)
       if(partial && partial.name){
-        var e = items.find(function(i){ return i.name===partial.name; });
+        var normName = (partial.name||'').trim().toLowerCase();
+        var e = items.find(function(i){ return (i.name||'').trim().toLowerCase() === normName; });
         if(e){
-          // Removido incremento automático. Agora só substitui se vier valor novo digitado
-          if(partial.qty!=null && partial.qty!==undefined) e.qty = partial.qty;
+          // Se já existe, soma a quantidade
+          let addQty = Number(partial.qty) || 1;
+          e.qty = (Number(e.qty) || 0) + addQty;
           if(partial.price!=null) e.price = partial.price;
           if(partial.category && !e.category) e.category = partial.category;
           if(partial.unit && !e.unit) e.unit = partial.unit;
@@ -357,8 +406,9 @@ function upsertItem(partial){
         return (i.name||'').trim().toLowerCase()===normName && Number(i.price||0)===price;
       });
       if(same){
-        // Removido incremento automático. Agora só substitui se vier valor novo digitado
-        if(partial.qty!=null && partial.qty!==undefined) same.qty = partial.qty;
+        // Se já existe, soma a quantidade
+        let addQty = Number(partial.qty) || 1;
+        same.qty = (Number(same.qty) || 0) + addQty;
         if(partial.category && !same.category) same.category = partial.category;
         if(partial.unit && !same.unit) same.unit = partial.unit;
         render(); return;
@@ -397,18 +447,11 @@ function upsertItem(partial){
       if (categoriasPresentes.includes(catAtual)) catSel.value = catAtual;
     }
     const catFilter = catSel ? catSel.value : '';
-    // Separar itens não comprados e comprados, filtrando por categoria se necessário
-    const notDone = items.filter(i => !i.done && (!catFilter || (i.category||'Outros') === catFilter));
-    const done = items.filter(i => i.done && (!catFilter || (i.category||'Outros') === catFilter));
-    // Ordenar cada grupo
-    const sortFn = (a,b)=>{
-      if(sort==='name') return (a.name||'').localeCompare(b.name||'');
-      if(sort==='price') return (a.price||0)-(b.price||0);
-      if(sort==='subtotal') return (a.qty*a.price)-(b.qty*b.price);
-      return (b.createdAt||0)-(a.createdAt||0);
-    };
-    notDone.sort(sortFn);
-    done.sort(sortFn);
+  // Separar itens não comprados e comprados, filtrando por categoria se necessário
+  let notDone = items.filter(i => !i.done && (!catFilter || (i.category||'Outros') === catFilter));
+  let done = items.filter(i => i.done && (!catFilter || (i.category||'Outros') === catFilter));
+  // Ordenar: não comprados por ordem de adição (mais antigos no final), comprados pode manter ordem atual
+  notDone.sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
 
     listEl.innerHTML='';
     // Valor previsto: soma de todos os itens, independente do status
@@ -599,16 +642,22 @@ function upsertItem(partial){
   // Finalizar compra
   $('#finalizar')?.addEventListener('click', ()=>{
   if(!items.length) return alert('Sua lista está vazia.');
+  // Se não houver nenhum item marcado como comprado, não faz nada
+  const comprados = items.filter(i => !!i.done);
+  if (!comprados.length) return alert('Marque os itens comprados para finalizar a compra.');
   const nome = prompt('Deseja dar um nome para este histórico? (opcional)','');
   // Pega o valor do campo de mercado
   let mercado = '';
   const marketInput = document.getElementById('market');
   if (marketInput && marketInput.value) mercado = marketInput.value.trim();
   else if (typeof currentMarket === 'string' && currentMarket) mercado = currentMarket;
-  const entry = { id: genId(), at: Date.now(), name: nome ? nome.trim() : undefined, market: mercado, items: items.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
+  // Salva apenas os itens comprados no histórico
+  const entry = { id: genId(), at: Date.now(), name: nome ? nome.trim() : undefined, market: mercado, items: comprados.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
   history.unshift(entry);
   entry.items.forEach(trackPriceForHistory);
-  items = []; save(); render(); renderReports(); renderHistorico(); alert('Compra finalizada! Relatórios atualizados.');
+  // Remove apenas os itens comprados da lista, mantendo os não comprados
+  items = items.filter(i => !i.done);
+  save(); render(); renderReports(); renderHistorico(); alert('Compra finalizada! Apenas os itens marcados foram considerados comprados. Os demais permanecem na lista.');
   });
 
   // ===== Insights =====
@@ -771,14 +820,17 @@ function upsertItem(partial){
     box.innerHTML = '';
     userLists.forEach((ulist, idx) => {
       const div = document.createElement('div');
-      div.className = 'user-list-entry flex items-center justify-between mb-2 p-2 rounded bg-white/10';
+      div.className = 'user-list-entry flex flex-col gap-1 mb-2 p-3 rounded shadow';
       div.innerHTML = `
-        <span class="font-medium">${ulist.name || 'Sem nome'}</span>
-        <div>
-          <button class="px-2 py-1 rounded bg-emerald-600/80 hover:bg-emerald-600 text-xs" data-load="${idx}">Carregar</button>
-          <button class="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-600 text-xs" data-edit="${idx}">Editar</button>
-          <button class="px-2 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-xs" data-remove="${idx}">Remover</button>
+        <div class="flex items-center gap-2 justify-between">
+          <span class="list-title flex-1">${ulist.name || 'Sem nome'}</span>
+          <div class="list-actions">
+            <button class="save-btn" data-load="${idx}">Carregar</button>
+            <button class="edit-btn" data-edit="${idx}">Editar</button>
+            <button class="remove-btn" data-remove="${idx}">Remover</button>
+          </div>
         </div>
+        <div class="list-meta">${ulist.items.length} itens</div>
       `;
       box.appendChild(div);
     });
@@ -804,19 +856,40 @@ function upsertItem(partial){
         const saveBtn = document.getElementById('saveEditUserListBtn');
         if (!modal || !closeBtn || !itemsBox || !saveBtn) return;
         modal.classList.remove('hidden');
-        // Renderiza os itens para edição
+        // Renderiza os itens para edição (inputs maiores, foco, atalhos)
         let tempItems = userLists[idx].items.map(i => ({...i}));
         function renderEditItems() {
+          const unidades = ['un','kg','g','L','ml','pct'];
+          const categorias = ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'];
           itemsBox.innerHTML = tempItems.map((it, i) => `
-            <div class='flex gap-2 items-center'>
-              <input type='text' class='px-2 py-1 rounded bg-slate-800 text-white w-32' value='${it.name||''}' data-i='${i}' data-f='name' placeholder='Nome'>
-              <input type='number' class='px-2 py-1 rounded bg-slate-800 text-white w-16' value='${it.qty||1}' min='1' data-i='${i}' data-f='qty' placeholder='Qtd'>
-              <input type='number' class='px-2 py-1 rounded bg-slate-800 text-white w-20' value='${it.price||0}' min='0' step='0.01' data-i='${i}' data-f='price' placeholder='Preço'>
-              <input type='text' class='px-2 py-1 rounded bg-slate-800 text-white w-12' value='${it.unit||'un'}' data-i='${i}' data-f='unit' placeholder='Unidade'>
-              <input type='text' class='px-2 py-1 rounded bg-slate-800 text-white w-20' value='${it.category||'Outros'}' data-i='${i}' data-f='category' placeholder='Categoria'>
-              <button class='remove-edit-item px-2 py-1 rounded bg-rose-700 text-white' data-i='${i}' title='Remover'>🗑️</button>
+            <div class='flex flex-col md:flex-row gap-2 items-center mb-2 p-3 rounded-lg shadow suggestion-card'>
+              <div class='flex-1 flex flex-col md:flex-row gap-2 items-center'>
+                <input type='text' class='px-3 py-2 rounded bg-slate-800 text-white w-full md:w-40 text-base' value='${it.name||''}' data-i='${i}' data-f='name' placeholder='Nome do item 🛒'>
+                <input type='number' class='px-3 py-2 rounded bg-slate-800 text-white w-20 text-base' value='${it.qty||1}' min='1' data-i='${i}' data-f='qty' placeholder='Qtd'>
+                <select class='px-3 py-2 rounded bg-slate-800 text-white w-20 text-base' data-i='${i}' data-f='unit'>
+                  ${unidades.map(u=>`<option value='${u}'${(it.unit||'un')===u?' selected':''}>${u}</option>`).join('')}
+                </select>
+                <input type='number' class='px-3 py-2 rounded bg-slate-800 text-white w-24 text-base' value='${it.price||0}' min='0' step='0.01' data-i='${i}' data-f='price' placeholder='Preço R$'>
+                <select class='px-3 py-2 rounded bg-slate-800 text-white w-32 text-base' data-i='${i}' data-f='category'>
+                  ${categorias.map(c=>`<option value='${c}'${(it.category||'Outros')===c?' selected':''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <button class='remove-edit-item px-2 py-2 rounded bg-rose-700 text-white text-lg' data-i='${i}' title='Remover'>🗑️</button>
             </div>
-          `).join('');
+          `).join('') + `
+            <div class='flex gap-2 mt-2'>
+              <button class='add-edit-item px-4 py-2 rounded bg-emerald-700 text-white font-semibold' title='Adicionar novo item'>+ Adicionar item</button>
+            </div>
+          `;
+          // Foco automático no primeiro campo
+          const firstInput = itemsBox.querySelector('input');
+          if(firstInput) setTimeout(()=>firstInput.focus(), 100);
+          // Botão de adicionar novo item
+          const addBtn = itemsBox.querySelector('.add-edit-item');
+          if(addBtn) addBtn.onclick = ()=>{
+            tempItems.push({name:'', qty:1, unit:'un', price:0, category:'Outros'});
+            renderEditItems();
+          };
         }
         renderEditItems();
         // Eventos de edição
@@ -829,6 +902,11 @@ function upsertItem(partial){
           if (f === 'qty' || f === 'price') val = Number(val);
           tempItems[i][f] = val;
         };
+        // Atalho: Enter para salvar, Esc para cancelar
+        itemsBox.onkeydown = (ev) => {
+          if(ev.key === 'Enter') { saveBtn.click(); ev.preventDefault(); }
+          if(ev.key === 'Escape') { closeBtn.click(); ev.preventDefault(); }
+        };
         itemsBox.onclick = (ev) => {
           const t = ev.target;
           if (t.classList.contains('remove-edit-item')) {
@@ -839,12 +917,13 @@ function upsertItem(partial){
             }
           }
         };
-        // Salvar alterações
+        // Salvar alterações com feedback visual
         saveBtn.onclick = () => {
           userLists[idx].items = tempItems.filter(it => it.name && it.qty > 0);
           save();
           renderUserLists();
-          modal.classList.add('hidden');
+          saveBtn.textContent = 'Salvo!';
+          setTimeout(()=>{ modal.classList.add('hidden'); saveBtn.textContent = 'Salvar alterações'; }, 700);
         };
         // Fechar modal
         closeBtn.onclick = () => { modal.classList.add('hidden'); };
@@ -860,12 +939,7 @@ function upsertItem(partial){
       });
     });
   }
-  $('#saveCurrentAsList')?.addEventListener('click', ()=>{
-    if(!items.length) return alert('A lista atual está vazia.');
-    const nm = prompt('Nome para esta lista:','Minha lista'); if(!nm) return;
-    userLists.push({ name: nm.trim(), items: items.map(i=>{ const o={}; ['name','category','unit','qty','price'].forEach(k=> o[k]=i[k]); return o; }) });
-    save(); renderUserLists(); alert('Lista salva!');
-  });
+  // ...função de salvar lista atual removida...
 
   // ===== Inicialização =====
   function init(){

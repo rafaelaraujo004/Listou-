@@ -121,7 +121,7 @@
 
     <!-- LISTA -->
     <section id="tab-lista" class="tab-section space-y-4">
-  <h1 class="text-3xl font-extrabold shopping-title text-center tracking-tight mb-2" style="background:linear-gradient(90deg,#2563eb,#60a5fa);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Sua Lista de Compras</h1>
+  <h1 class="text-lg font-semibold shopping-title text-center tracking-tight mb-2" style="background:linear-gradient(90deg,#2563eb,#60a5fa);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Sua lista de compras Inteligente🧠</h1>
       <div style="width:100%;max-width:120px;height:4px;margin:0 auto 18px auto;position:relative;">
         <div style="width:100%;height:4px;border-radius:2px;background:linear-gradient(90deg,#2563eb,#60a5fa);position:absolute;left:0;top:0;animation:underlineFadeIn 1.2s cubic-bezier(.4,0,.2,1);"></div>
       </div>
@@ -253,7 +253,6 @@
 </div>
       <h1 class="text-2xl font-bold">Sugestões & Listas</h1>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  <!-- Card removido conforme solicitado -->
         <div class="card p-4">
           <h3 class="font-semibold mb-2">Churrasco</h3>
           <div class="flex flex-wrap gap-2 text-xs">
@@ -266,12 +265,48 @@
             <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Detergente","category":"Limpeza","unit":"un","qty":4},{"name":"Sabão em pó","category":"Limpeza","unit":"kg","qty":2},{"name":"Água sanitária","category":"Limpeza","unit":"L","qty":2}]'>Adicionar</button>
           </div>
         </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Café da manhã</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Pão","category":"Mercearia","unit":"un","qty":10},{"name":"Leite","category":"Laticínios","unit":"L","qty":2},{"name":"Café","category":"Mercearia","unit":"g","qty":250},{"name":"Manteiga","category":"Laticínios","unit":"un","qty":1},{"name":"Queijo","category":"Laticínios","unit":"g","qty":200}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Semana saudável</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Alface","category":"Hortifruti","unit":"un","qty":2},{"name":"Tomate","category":"Hortifruti","unit":"kg","qty":1},{"name":"Frango","category":"Carnes","unit":"kg","qty":1},{"name":"Arroz integral","category":"Mercearia","unit":"kg","qty":1},{"name":"Banana","category":"Hortifruti","unit":"un","qty":7}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Volta às aulas</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Biscoito","category":"Mercearia","unit":"pct","qty":3},{"name":"Suco","category":"Bebidas","unit":"L","qty":3},{"name":"Iogurte","category":"Laticínios","unit":"un","qty":6},{"name":"Fruta","category":"Hortifruti","unit":"un","qty":6}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Pet</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Ração","category":"Outros","unit":"kg","qty":5},{"name":"Petisco","category":"Outros","unit":"un","qty":2},{"name":"Areia sanitária","category":"Outros","unit":"kg","qty":4}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Básico do mês</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Arroz","category":"Mercearia","unit":"kg","qty":5},{"name":"Feijão","category":"Mercearia","unit":"kg","qty":2},{"name":"Óleo","category":"Mercearia","unit":"L","qty":2},{"name":"Açúcar","category":"Mercearia","unit":"kg","qty":2},{"name":"Sal","category":"Mercearia","unit":"kg","qty":1}]'>Adicionar</button>
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold mb-2">Festa infantil</h3>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button class="tpl px-3 py-1 rounded-full bg-white/10" data-template='[{"name":"Refrigerante","category":"Bebidas","unit":"L","qty":6},{"name":"Salgadinho","category":"Mercearia","unit":"pct","qty":5},{"name":"Bolo","category":"Mercearia","unit":"kg","qty":2},{"name":"Doces","category":"Mercearia","unit":"pct","qty":4},{"name":"Copo descartável","category":"Outros","unit":"pct","qty":2}]'>Adicionar</button>
+          </div>
+        </div>
       </div>
       <div class="card p-4">
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-semibold">Minhas listas</h3>
           <div class="flex gap-2">
-            <button id="saveCurrentAsList" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm">Salvar lista atual</button>
+            <!-- Botão 'Salvar lista atual' removido -->
           </div>
         </div>
         <div id="userLists" class="flex flex-col gap-2"></div>

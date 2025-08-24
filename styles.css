@@ -1,3 +1,121 @@
+/* Responsividade para edição de listas salvas */
+.suggestion-card, .user-list-entry {
+  width: 100%;
+  min-width: 0;
+}
+.edit-list-modal-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+@media (max-width: 600px) {
+  .suggestion-card, .user-list-entry {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.5rem !important;
+  }
+  .suggestion-card input, .suggestion-card select,
+  .user-list-entry input, .user-list-entry select {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 1rem !important;
+  }
+  .edit-list-modal-items > div {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+}
+/* Garantir rolagem horizontal suave para listas grandes */
+#userLists {
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+/* --- Modernização visual para sugestões e listas --- */
+.user-list-entry, .suggestion-card {
+  background: linear-gradient(90deg, #232b3a 80%, #9C27B0 100%);
+  box-shadow: 0 2px 8px 0 rgba(156,39,176,0.10);
+  border: none;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.user-list-entry:hover, .suggestion-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(156,39,176,0.18);
+  background: linear-gradient(90deg, #334155 80%, #7C1FA0 100%);
+}
+.user-list-entry input, .suggestion-card input {
+  background: #232b3a;
+  color: #fff;
+  border: 1px solid #9C27B0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 15px;
+}
+.user-list-entry .edit-btn, .suggestion-card .edit-btn {
+  background: #fff;
+  color: #9C27B0;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-weight: bold;
+  margin-right: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+.user-list-entry .edit-btn:hover, .suggestion-card .edit-btn:hover {
+  background: #9C27B0;
+  color: #fff;
+}
+.user-list-entry .save-btn, .suggestion-card .save-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-weight: bold;
+  margin-right: 6px;
+  transition: background 0.2s;
+}
+.user-list-entry .save-btn:hover, .suggestion-card .save-btn:hover {
+  background: #388E3C;
+}
+.user-list-entry .cancel-btn, .suggestion-card .cancel-btn {
+  background: #f1f5f9;
+  color: #232b3a;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-weight: bold;
+  margin-right: 6px;
+  transition: background 0.2s;
+}
+.user-list-entry .cancel-btn:hover, .suggestion-card .cancel-btn:hover {
+  background: #e0e7ef;
+}
+.user-list-entry .remove-btn, .suggestion-card .remove-btn {
+  background: #E53935;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.user-list-entry .remove-btn:hover, .suggestion-card .remove-btn:hover {
+  background: #B71C1C;
+}
+.user-list-entry .list-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.user-list-entry .list-meta {
+  font-size: 0.95rem;
+  color: #e0e7ef;
+}
+.user-list-entry .list-actions, .suggestion-card .suggest-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
 /* Botão de remover fixo no canto direito do card */
 .shopping-card {
   position: relative;
