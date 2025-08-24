@@ -455,7 +455,12 @@ function upsertItem(partial){
 
     listEl.innerHTML='';
     // Valor previsto: soma de todos os itens, independente do status
-    let previsto = items.reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
+    let previsto = items.reduce((sum, it) => {
+      // Garante que preço e quantidade com vírgula sejam convertidos corretamente
+      let qty = typeof it.qty === 'string' ? Number(it.qty.replace(',', '.')) : Number(it.qty);
+      let price = typeof it.price === 'string' ? Number(it.price.replace(',', '.')) : Number(it.price);
+      return sum + ((qty||0)*(price||0));
+    }, 0);
     let realizado = 0;
 
     // Renderizar não comprados
@@ -493,9 +498,12 @@ function upsertItem(partial){
 
     // Renderizar comprados
     done.forEach((it)=>{
-      const idx = items.indexOf(it);
-      const subtotal = (Number(it.qty)||0)*(Number(it.price)||0);
-      realizado+=subtotal;
+  const idx = items.indexOf(it);
+  // Garante que preço e quantidade com vírgula sejam convertidos corretamente
+  let qty = typeof it.qty === 'string' ? Number(it.qty.replace(',', '.')) : Number(it.qty);
+  let price = typeof it.price === 'string' ? Number(it.price.replace(',', '.')) : Number(it.price);
+  const subtotal = (qty||0)*(price||0);
+  realizado+=subtotal;
       const card = document.createElement('div');
       card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px] opacity-70';
       card.innerHTML =
@@ -566,15 +574,16 @@ function upsertItem(partial){
         let after = val;
         let diff = after.length - before.length;
         let newCursor = beforeCursor + diff;
-        items[i][f] = val;
+        // Sempre converte vírgula para ponto para o valor ser numérico
+        items[i][f] = val.replace(',', '.');
         setTimeout(()=>{
           inputEl.value = items[i][f];
           try { inputEl.setSelectionRange(newCursor, newCursor); } catch(e){}
         }, 0);
       }
-  // Atualiza valor previsto ao digitar
-  let previsto = items.reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
-  $('#kpiPrevisto') && ($('#kpiPrevisto').textContent = money(previsto));
+      // Atualiza valor previsto ao digitar
+      let previsto = items.reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
+      $('#kpiPrevisto') && ($('#kpiPrevisto').textContent = money(previsto));
     } else {
       items[i][f] = val;
     }
