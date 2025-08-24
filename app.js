@@ -1,3 +1,49 @@
+// Importação automática de lista compartilhada via URL (?lista=...)
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('lista')) {
+    try {
+      const lista = JSON.parse(decodeURIComponent(params.get('lista')));
+      if (Array.isArray(lista) && lista.length) {
+        localStorage.setItem('listou.items.v3', JSON.stringify(lista));
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => alert('Lista de compras importada com sucesso!'), 300);
+        if (typeof render === 'function') render();
+      }
+    } catch (e) {
+      alert('Não foi possível importar a lista compartilhada.');
+    }
+  }
+})();
+// Compartilhamento de lista de compras (mobile/desktop)
+document.getElementById('shareList')?.addEventListener('click', async function () {
+  const items = JSON.parse(localStorage.getItem('listou.items.v3') || '[]');
+  if (!items.length) {
+    alert('Sua lista está vazia!');
+    return;
+  }
+  const baseUrl = window.location.origin + window.location.pathname;
+  const encodedList = encodeURIComponent(JSON.stringify(items));
+  const shareUrl = `${baseUrl}?lista=${encodedList}`;
+  const appUrl = 'https://listou.app'; // Altere se quiser
+  const shareText = `Veja minha lista de compras no Listou!\n\nAcesse: ${shareUrl}\n\nBaixe o app: ${appUrl}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Minha lista de compras',
+        text: shareText,
+        url: shareUrl
+      });
+    } catch (err) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert('Link da lista copiado! Compartilhe com quem quiser.');
+    } catch (err) {
+      prompt('Copie o link da lista:', shareText);
+    }
+  }
+});
 // Adiciona blur na main quando sidebar está aberta no mobile
 document.addEventListener('DOMContentLoaded', function() {
   var sidebar = document.getElementById('sidebar');
