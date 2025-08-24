@@ -639,25 +639,49 @@ function upsertItem(partial){
   });
   function fallbackCopy(text){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('Lista copiada!'); }
 
+  // Compartilhar lista
+  $('#shareList')?.addEventListener('click', async ()=>{
+    if(!items.length) return alert('Sua lista está vazia.');
+    // Gera um link com a lista atual (serializada em base64)
+    const listaStr = JSON.stringify(items);
+    const listaB64 = btoa(unescape(encodeURIComponent(listaStr)));
+    const urlBase = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+    const linkLista = urlBase + '?lista=' + listaB64;
+    const linkApp = urlBase;
+    const texto = `Confira minha lista de compras no Listou!\n\nAcesse e use a mesma lista: ${linkLista}\n\nOu utilize o app: ${linkApp}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Lista de Compras', text: texto, url: linkLista });
+      } catch (e) { alert('Não foi possível compartilhar: ' + e.message); }
+    } else {
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(texto);
+        alert('Link da lista copiado!');
+      } else {
+        fallbackCopy(texto);
+      }
+    }
+  });
+
   // Finalizar compra
   $('#finalizar')?.addEventListener('click', ()=>{
-  if(!items.length) return alert('Sua lista está vazia.');
-  // Se não houver nenhum item marcado como comprado, não faz nada
-  const comprados = items.filter(i => !!i.done);
-  if (!comprados.length) return alert('Marque os itens comprados para finalizar a compra.');
-  const nome = prompt('Deseja dar um nome para este histórico? (opcional)','');
-  // Pega o valor do campo de mercado
-  let mercado = '';
-  const marketInput = document.getElementById('market');
-  if (marketInput && marketInput.value) mercado = marketInput.value.trim();
-  else if (typeof currentMarket === 'string' && currentMarket) mercado = currentMarket;
-  // Salva apenas os itens comprados no histórico
-  const entry = { id: genId(), at: Date.now(), name: nome ? nome.trim() : undefined, market: mercado, items: comprados.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
-  history.unshift(entry);
-  entry.items.forEach(trackPriceForHistory);
-  // Remove apenas os itens comprados da lista, mantendo os não comprados
-  items = items.filter(i => !i.done);
-  save(); render(); renderReports(); renderHistorico(); alert('Compra finalizada! Apenas os itens marcados foram considerados comprados. Os demais permanecem na lista.');
+    if(!items.length) return alert('Sua lista está vazia.');
+    // Se não houver nenhum item marcado como comprado, não faz nada
+    const comprados = items.filter(i => !!i.done);
+    if (!comprados.length) return alert('Marque os itens comprados para finalizar a compra.');
+    const nome = prompt('Deseja dar um nome para este histórico? (opcional)','');
+    // Pega o valor do campo de mercado
+    let mercado = '';
+    const marketInput = document.getElementById('market');
+    if (marketInput && marketInput.value) mercado = marketInput.value.trim();
+    else if (typeof currentMarket === 'string' && currentMarket) mercado = currentMarket;
+    // Salva apenas os itens comprados no histórico
+    const entry = { id: genId(), at: Date.now(), name: nome ? nome.trim() : undefined, market: mercado, items: comprados.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
+    history.unshift(entry);
+    entry.items.forEach(trackPriceForHistory);
+    // Remove apenas os itens comprados da lista, mantendo os não comprados
+    items = items.filter(i => !i.done);
+    save(); render(); renderReports(); renderHistorico(); alert('Compra finalizada! Apenas os itens marcados foram considerados comprados. Os demais permanecem na lista.');
   });
 
   // ===== Insights =====
