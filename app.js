@@ -37,7 +37,52 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
 (function(){
+// Botão de tema na seção histórico
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('themeToggleHistorico');
+  if (btn) btn.addEventListener('click', toggleTheme);
+});
   'use strict';
+    // ===== Histórico de Compras =====
+    function renderHistorico() {
+      const list = document.getElementById('historicoList');
+      const vazio = document.getElementById('historicoVazio');
+      if (!list || !vazio) return;
+      list.innerHTML = '';
+      if (!history.length) {
+        vazio.style.display = '';
+        return;
+      }
+      vazio.style.display = 'none';
+      history.forEach(entry => {
+        const li = document.createElement('li');
+        const data = new Date(entry.at);
+        const nome = entry.name || data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR').slice(0,5);
+        // Calcula total da compra
+        const total = (entry.items||[]).reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
+        // Mercado salvo
+        const mercado = entry.market || entry.mercado || '—';
+        li.className = 'flex items-center justify-between bg-white/10 rounded p-2';
+        li.innerHTML = `<div><b>${nome}</b><br><span class='text-xs muted'>${data.toLocaleString('pt-BR')}</span><br><span class='text-xs'>Mercado: <b>${mercado}</b></span><br><span class='text-xs'>Total: <b>${money(total)}</b></span></div>
+          <button class='px-2 py-1 ml-2 rounded bg-blue-600 hover:bg-blue-700 text-xs' data-restore='${entry.id}'>Usar</button>`;
+        list.appendChild(li);
+      });
+      // Evento para restaurar lista
+      list.querySelectorAll('button[data-restore]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = btn.getAttribute('data-restore');
+          const entry = history.find(h => h.id === id);
+          if (!entry) return;
+          if (!confirm('Deseja substituir sua lista atual por esta do histórico?')) return;
+          items = entry.items.map(i => Object.assign({}, i));
+          save();
+          render();
+          setTab('lista');
+          alert('Lista restaurada do histórico!');
+        });
+      });
+    }
+
   // ===== Utilitários =====
   const K = {
     ITEMS: 'listou.items.v3',
@@ -132,6 +177,10 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.classList.remove('sidebar-open');
       if (closeSidebarBtn) closeSidebarBtn.classList.add('hidden');
       if (toggleSidebarBtn) toggleSidebarBtn.style.display = '';
+    }
+    // Alterna exibição da seção Histórico (agora no main)
+    if (btn.getAttribute('data-tab') === 'historico') {
+      renderHistorico();
     }
   }));
   setTab('lista');
@@ -293,7 +342,8 @@ function upsertItem(partial){
       if(partial && partial.name){
         var e = items.find(function(i){ return i.name===partial.name; });
         if(e){
-          e.qty = (e.qty||0) + (partial.qty||1);
+          // Removido incremento automático. Agora só substitui se vier valor novo digitado
+          if(partial.qty!=null && partial.qty!==undefined) e.qty = partial.qty;
           if(partial.price!=null) e.price = partial.price;
           if(partial.category && !e.category) e.category = partial.category;
           if(partial.unit && !e.unit) e.unit = partial.unit;
@@ -307,7 +357,8 @@ function upsertItem(partial){
         return (i.name||'').trim().toLowerCase()===normName && Number(i.price||0)===price;
       });
       if(same){
-        same.qty = (same.qty||0) + (partial.qty||1);
+        // Removido incremento automático. Agora só substitui se vier valor novo digitado
+        if(partial.qty!=null && partial.qty!==undefined) same.qty = partial.qty;
         if(partial.category && !same.category) same.category = partial.category;
         if(partial.unit && !same.unit) same.unit = partial.unit;
         render(); return;
@@ -333,10 +384,22 @@ function upsertItem(partial){
   }
 
   function render(){
-    const sortSel = $('#sort'); const sort = sortSel ? sortSel.value : 'recent';
-    // Separar itens não comprados e comprados
-    const notDone = items.filter(i => !i.done);
-    const done = items.filter(i => i.done);
+  const sortSel = $('#sort'); const sort = sortSel ? sortSel.value : 'recent';
+    const catSel = $('#categoryFilter');
+    // Gera lista de categorias presentes
+    const categoriasPresentes = Array.from(new Set(items.map(i => i.category || 'Outros')));
+    // Atualiza opções do filtro de categoria
+    if (catSel) {
+      const catAtual = catSel.value;
+      catSel.innerHTML = '<option value="">Todas as categorias</option>' +
+        categoriasPresentes.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+      // Mantém seleção se possível
+      if (categoriasPresentes.includes(catAtual)) catSel.value = catAtual;
+    }
+    const catFilter = catSel ? catSel.value : '';
+    // Separar itens não comprados e comprados, filtrando por categoria se necessário
+    const notDone = items.filter(i => !i.done && (!catFilter || (i.category||'Outros') === catFilter));
+    const done = items.filter(i => i.done && (!catFilter || (i.category||'Outros') === catFilter));
     // Ordenar cada grupo
     const sortFn = (a,b)=>{
       if(sort==='name') return (a.name||'').localeCompare(b.name||'');
@@ -348,13 +411,13 @@ function upsertItem(partial){
     done.sort(sortFn);
 
     listEl.innerHTML='';
-    let previsto=0, realizado=0;
+    // Valor previsto: soma de todos os itens, independente do status
+    let previsto = items.reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
+    let realizado = 0;
 
     // Renderizar não comprados
     notDone.forEach((it)=>{
       const idx = items.indexOf(it);
-      const subtotal = (Number(it.qty)||0)*(Number(it.price)||0);
-      previsto+=subtotal;
       const card = document.createElement('div');
       card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px]';
       card.innerHTML =
@@ -370,14 +433,14 @@ function upsertItem(partial){
         + '</div>'
   + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
   +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="1" step="1" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Quantidade</span> <input type="text" pattern="[0-9.,]*" inputmode="decimal" placeholder="Quantidade" autocomplete="off" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Preço</span> <input type="text" pattern="[0-9.,]*" inputmode="decimal" placeholder="Preço" autocomplete="off" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
   +   '</div>'
   +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Un.:</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
+  +     '<span class="flex flex-col items-center"><span class="label">Unidade</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
   ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
   '  </select></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
+  +     '<span class="flex flex-col items-center"><span class="label">Categoria</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
   ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
   '  </select></span>'
   +   '</div>'
@@ -405,7 +468,7 @@ function upsertItem(partial){
         + '</div>'
   + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
   +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="1" step="1" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
+  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="0.01" step="0.01" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
   +     '<span class="flex flex-col items-center"><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
   +   '</div>'
   +   '<div class="flex flex-row gap-4 w-full justify-center">'
@@ -420,25 +483,62 @@ function upsertItem(partial){
       listEl.appendChild(card);
     });
 
-    $('#count') && ($('#count').textContent = items.length + ' itens');
+  // Atualiza contador para mostrar quantos itens estão sendo exibidos
+  $('#count') && ($('#count').textContent = (notDone.length + done.length) + ' itens' + (catFilter ? ' ('+catFilter+')' : ''));
     $('#progress') && ($('#progress').textContent = '');
     $('#kpiPrevisto') && ($('#kpiPrevisto').textContent = money(previsto));
     $('#kpiRealizado') && ($('#kpiRealizado').textContent = money(realizado));
-    save();
-    renderInsights();
-    updateGradient();
+  save();
+  renderInsights();
+  updateGradient();
   }
 
+  // Atualiza lista ao mudar filtro de categoria
+  $('#categoryFilter') && $('#categoryFilter').addEventListener('change', render);
+  // Adiciona rolagem horizontal no filtro de categoria no mobile
+  const catFilterEl = $('#categoryFilter');
+  if (catFilterEl) {
+    catFilterEl.style.maxWidth = '100vw';
+    catFilterEl.style.overflowX = 'auto';
+    catFilterEl.style.display = 'block';
+    catFilterEl.style.whiteSpace = 'nowrap';
+  }
   listEl.addEventListener('input', (e)=>{
     const i = Number(e.target.getAttribute('data-i'));
     const f = e.target.getAttribute('data-f');
     if(!Number.isFinite(i) || !f) return;
     let val = e.target.value;
-    if(f==='qty' || f==='price') val = Number(val||0);
-    items[i][f] = val;
-    if(f==='price'){ trackPriceForHistory(items[i]); }
-    if(f==='name' || f==='category' || f==='unit' || f==='price') learnFromItem(items[i]);
-    save(); render();
+    let inputEl = e.target;
+    let cursorPos = inputEl.selectionStart;
+    if(f==='qty' || f==='price') {
+      // Permite campo vazio, vírgula ou ponto como separador decimal, e só aceita números
+      if(val === '') {
+        items[i][f] = '';
+      } else {
+        // Remove tudo que não for número, vírgula ou ponto, mas mantém a vírgula digitada
+        let before = inputEl.value;
+        let beforeCursor = cursorPos;
+        val = val.replace(/[^0-9.,]/g, '');
+        // Corrige posição do cursor se vírgula foi digitada
+        let after = val;
+        let diff = after.length - before.length;
+        let newCursor = beforeCursor + diff;
+        items[i][f] = val;
+        setTimeout(()=>{
+          inputEl.value = items[i][f];
+          try { inputEl.setSelectionRange(newCursor, newCursor); } catch(e){}
+        }, 0);
+      }
+  // Atualiza valor previsto ao digitar
+  let previsto = items.reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
+  $('#kpiPrevisto') && ($('#kpiPrevisto').textContent = money(previsto));
+    } else {
+      items[i][f] = val;
+    }
+    if(f==='price' && items[i][f] !== ''){ trackPriceForHistory(items[i]); }
+    if((f==='name' || f==='category' || f==='unit' || f==='price') && items[i][f] !== '') learnFromItem(items[i]);
+    save();
+    // Não chama render() aqui para não perder o foco do input
   });
   listEl.addEventListener('change', (e)=>{
     if(e.target.getAttribute('data-act')==='toggle'){
@@ -465,8 +565,8 @@ function upsertItem(partial){
       name: $('#name')?.value?.trim() || '',
       category: $('#category')?.value || 'Outros',
       unit: $('#unit')?.value || 'un',
-      qty: Number($('#qty')?.value || 1),
-      price: Number($('#price')?.value || 0)
+      qty: parseFloat($('#qty')?.value?.replace(',','.')) || 1,
+      price: parseFloat($('#price')?.value?.replace(',','.')) || 0
     };
     if(!it.name){ alert('Dê um nome ao item.'); $('#name')?.focus(); return; }
     upsertItem(it); addForm.reset(); $('#qty') && ($('#qty').value=1); $('#unit') && ($('#unit').value='un'); $('#name')?.focus();
@@ -481,20 +581,34 @@ function upsertItem(partial){
 
   // Copiar lista
   $('#copyList')?.addEventListener('click', ()=>{
-    const lines = items.filter(i => i.name && i.qty > 0).map(i => `${i.name} (${i.qty})`);
+    const lines = items
+      .filter(i => i.name && i.qty > 0)
+      .map(i => {
+        const nome = i.name;
+        const qtd = i.qty;
+        const unidade = i.unit || '';
+        return `• ${nome} — ${qtd} ${unidade}`.replace(/\s+/g, ' ').trim();
+      });
     const text = lines.join('\n');
-    if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(text).then(()=>alert('Lista copiada!')).catch(()=>fallbackCopy(text)); }
-    else fallbackCopy(text);
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(text).then(()=>alert('Lista copiada!')).catch(()=>fallbackCopy(text));
+    } else fallbackCopy(text);
   });
   function fallbackCopy(text){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('Lista copiada!'); }
 
   // Finalizar compra
   $('#finalizar')?.addEventListener('click', ()=>{
   if(!items.length) return alert('Sua lista está vazia.');
-  const entry = { id: genId(), at: Date.now(), items: items.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
+  const nome = prompt('Deseja dar um nome para este histórico? (opcional)','');
+  // Pega o valor do campo de mercado
+  let mercado = '';
+  const marketInput = document.getElementById('market');
+  if (marketInput && marketInput.value) mercado = marketInput.value.trim();
+  else if (typeof currentMarket === 'string' && currentMarket) mercado = currentMarket;
+  const entry = { id: genId(), at: Date.now(), name: nome ? nome.trim() : undefined, market: mercado, items: items.map(i=>{ const o={}; Object.keys(i).forEach(k=> o[k]=i[k]); return o; }) };
   history.unshift(entry);
   entry.items.forEach(trackPriceForHistory);
-  items = []; save(); render(); renderReports(); alert('Compra finalizada! Relatórios atualizados.');
+  items = []; save(); render(); renderReports(); renderHistorico(); alert('Compra finalizada! Relatórios atualizados.');
   });
 
   // ===== Insights =====
@@ -759,6 +873,7 @@ function upsertItem(partial){
     render();
     renderReports();
     renderUserLists();
+  renderHistorico();
     // testes simples de sanidade (dev)
     window.__listou = { items, history, suggestions, priceHistory, render, renderReports };
   }
@@ -790,7 +905,7 @@ function upsertItem(partial){
             box.innerHTML = '<span class="muted">Nenhuma sugestão de compra baseada no seu histórico.</span>';
             return;
           }
-          box.innerHTML = '<b>🔮 Sugestões para você (baseado no seu histórico):</b><br>' +
+          box.innerHTML = '<b>🔮 Lendo sua mente com base no seu padrão de compras...</b><br>' +
             allSugs.map(n => {
               const meta = suggestions[n] || {};
               const display = n.charAt(0).toUpperCase() + n.slice(1);
