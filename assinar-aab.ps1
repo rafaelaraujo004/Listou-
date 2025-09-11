@@ -2,21 +2,23 @@
 # Data: 12 de agosto de 2025
 
 Write-Host "===========# Comando para assinar
-$sign        Write-Host "Keystore usado: $keystorePath" -ForegroundColor Blue
-        Write-Host "Alias da chave: upload-key" -ForegroundColor Blue
-        Write-Host "`nProximo passo:" -ForegroundColor Yellow
-        Write-Host "1. Configure Play App Signing no Google Play Console" -ForegroundColor Green
-        Write-Host "2. Faca upload do certificado de upload (gerar com .\resolver-chave-incorreta.ps1)" -ForegroundColor Green
-        Write-Host "3. Faca upload do arquivo '$outputFile' para o Google Play Console" -ForegroundColor Green
-        Write-Host "4. Va em: https://play.google.com/console/" -ForegroundColor Blue
-        Write-Host "5. Selecione seu app > Release > Production > Create new release" -ForegroundColor Blue
-        Write-Host "6. Faca upload do AAB assinado" -ForegroundColor Blue
-        
-        # Informacoes adicionais
-        Write-Host "`nINFORMACOES IMPORTANTES:" -ForegroundColor Yellow
-        Write-Host "- Senha do keystore: ListouApp2025!@#" -ForegroundColor Gray
-        Write-Host "- Alias da chave: upload-key" -ForegroundColor Grayrsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$keystorePath" -storepass "ListouApp2025!@#" "$inputFile" "upload-key"
-"@====================================" -ForegroundColor Green
+# Exemplo de comandos para o usuário (removido concatenação e comandos inválidos)
+Write-Host "Keystore usado: $keystorePath" -ForegroundColor Blue
+Write-Host "Alias da chave: upload-key" -ForegroundColor Blue
+Write-Host "`nProximo passo:" -ForegroundColor Yellow
+Write-Host "1. Configure Play App Signing no Google Play Console" -ForegroundColor Green
+Write-Host "2. Faca upload do certificado de upload (gerar com .\resolver-chave-incorreta.ps1)" -ForegroundColor Green
+Write-Host "3. Faca upload do arquivo '$outputFile' para o Google Play Console" -ForegroundColor Green
+Write-Host "4. Va em: https://play.google.com/console/" -ForegroundColor Blue
+Write-Host "5. Selecione seu app > Release > Production > Create new release" -ForegroundColor Blue
+Write-Host "6. Faca upload do AAB assinado" -ForegroundColor Blue
+
+# Informacoes adicionais
+Write-Host "`nINFORMACOES IMPORTANTES:" -ForegroundColor Yellow
+Write-Host "- Senha do keystore: ListouApp2025!@#" -ForegroundColor Gray
+Write-Host "- Alias da chave: upload-key" -ForegroundColor Gray
+
+Write-Host "====================================" -ForegroundColor Green
 Write-Host "              ASSINAR ARQUIVO AAB                  " -ForegroundColor Green
 Write-Host "===================================================" -ForegroundColor Green
 
@@ -163,4 +165,4 @@ try {
 }
 
 Write-Host "`nPressione qualquer tecla para finalizar..." -ForegroundColor Yellow
-$Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | Out-Null
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')

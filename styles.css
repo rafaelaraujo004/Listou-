@@ -1,3 +1,20 @@
+/* Esconde barra de rolagem e barra de endereço em PWAs */
+html, body {
+  overscroll-behavior-y: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: #0f172a;
+}
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body::-webkit-scrollbar {
+  display: none;
+}
 /* Responsividade para edição de listas salvas */
 .suggestion-card, .user-list-entry {
   width: 100%;

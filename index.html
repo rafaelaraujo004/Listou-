@@ -1,20 +1,35 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <link rel="apple-touch-startup-image" href="/icons/icon-maskable-512x512.png">
+  <meta name="apple-mobile-web-app-title" content="Listou">
+  <meta name="application-name" content="Listou">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Listou — Lista de Compras Inteligente</title>
-  <link rel="icon" href="./logo.svg" type="image/svg+xml">
-  <link rel="preload" as="image" href="./logo.png">
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="./Ícone de lista de compras.png" type="image/png">
+  <link rel="preload" as="image" href="./Ícone de lista de compras.png">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@zxing/browser@latest"></script>
   <link rel="manifest" href="manifest.json">
 </head>
-<body class="min-h-screen text-slate-100 flex">
+<body class="min-h-screen text-slate-100 flex animate-fadein">
+<style>
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadein {
+  animation: fadein 0.7s;
+}
+</style>
   <!-- Sidebar -->
   <aside id="sidebar" class="w-72 max-w-full glass border-r p-4 space-y-4 hidden md:block elev">
   <!-- Botão fechar sidebar mobile -->

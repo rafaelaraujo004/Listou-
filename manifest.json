@@ -6,6 +6,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": [
+    "fullscreen",
     "standalone",
     "window-controls-overlay"
   ],
@@ -17,6 +18,12 @@
     "client_mode": "focus-existing"
   },
   "icons": [
+    {
+  "src": "/Ícone de lista de compras.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
     {
       "src": "/icons/icon-48x48.png",
       "sizes": "48x48",
@@ -78,13 +85,13 @@
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-maskable-192x192.png",
+  "src": "/Ícone de lista de compras.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/icons/icon-maskable-512x512.png",
+  "src": "/Ícone de lista de compras.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
@@ -112,12 +119,32 @@
     {
       "name": "Nova compra",
       "short_name": "Comprar",
-      "url": "/#tab=lista"
+      "description": "Ir direto para nova lista de compras",
+      "url": "/#tab=lista",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Relatórios",
       "short_name": "Relatórios",
-      "url": "/#tab=relatorios"
+      "description": "Acesse rapidamente os relatórios",
+      "url": "/#tab=relatorios",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sugestões",
+      "short_name": "Sugestões",
+      "description": "Acesse sugestões e listas rápidas",
+      "url": "/#tab=sugestoes",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "splash_pages": ["/"],
+  "prefer_related_applications": false,
+  "badges": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }
