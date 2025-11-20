@@ -13,7 +13,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-tap-highlight" content="no">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -47,7 +49,7 @@
   <button class="tab-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-left w-full" data-tab="historico"><span class="icon-svg icon-yellow" aria-label="Histórico"> <svg width="20" height="20" viewBox="0 0 20 20" fill="#FFD600" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6V2z"/></svg> </span> Histórico</button>
     </nav>
     <div id="sidebarFooter" class="mt-8 pt-4 border-t flex flex-col items-center gap-1" style="border-color:var(--ring)">
-      <div class="text-xs muted">Versão: <span id="appVersionSide">00000049</span></div>
+      <div class="text-xs muted">Versão: <span id="appVersionSide">1.0.50</span></div>
       <div class="text-xs muted">Desenvolvido por <strong>Rafael Araújo</strong></div>
     </div>
   </aside>
@@ -368,8 +370,56 @@
 
   <script src="./app.js"></script>
 <script>
+// Sistema de atualização automática do app
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
+  let refreshing = false;
+  
+  // Detectar quando há uma atualização disponível
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    console.log('[App] Nova versão detectada - recarregando...');
+    window.location.reload();
+  });
+
+  // Registrar service worker e verificar atualizações
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then(reg => {
+      console.log('[App] Service Worker registrado');
+      
+      // Verificar atualizações a cada 30 segundos
+      setInterval(() => {
+        reg.update().then(() => {
+          console.log('[App] Verificação de atualização concluída');
+        });
+      }, 30000);
+      
+      // Detectar nova versão instalada
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        console.log('[App] Nova versão sendo instalada...');
+        
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Nova versão disponível
+            console.log('[App] Nova versão instalada - preparando atualização');
+            
+            // Mostrar notificação de atualização
+            if (confirm('Nova versão do Listou disponível! Deseja atualizar agora?')) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          }
+        });
+      });
+    })
+    .catch(err => console.error('[App] Erro ao registrar Service Worker:', err));
+
+  // Receber mensagens do service worker
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data.type === 'SW_UPDATED') {
+      console.log(`[App] Atualizado para versão ${event.data.version}`);
+    }
+  });
 }
 </script>
 </body>

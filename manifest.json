@@ -2,25 +2,34 @@
   "name": "Listou — Lista de Compras",
   "short_name": "Listou",
   "id": "/",
-  "start_url": "/",
+  "version": "1.0.50",
+  "version_name": "1.0.50",
+  "start_url": "/?standalone=true",
   "scope": "/",
   "display": "standalone",
   "display_override": [
-    "fullscreen",
     "standalone",
-    "window-controls-overlay"
+    "minimal-ui"
   ],
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "theme_color_dark": "#0f172a",
   "description": "Sua lista de compras rápida, inteligente e com relatórios.",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "launch_handler": {
     "client_mode": "focus-existing"
   },
   "icons": [
     {
-  "src": "/Ícone de lista de compras.png",
+      "src": "/icon-512-maskable.png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
@@ -83,18 +92,6 @@
       "src": "/icons/icon-180x180.png",
       "sizes": "180x180",
       "type": "image/png"
-    },
-    {
-  "src": "/Ícone de lista de compras.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-  "src": "/Ícone de lista de compras.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable any"
     }
   ],
   "screenshots": [
@@ -121,21 +118,21 @@
       "short_name": "Comprar",
       "description": "Ir direto para nova lista de compras",
       "url": "/#tab=lista",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Relatórios",
       "short_name": "Relatórios",
       "description": "Acesse rapidamente os relatórios",
       "url": "/#tab=relatorios",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Sugestões",
       "short_name": "Sugestões",
       "description": "Acesse sugestões e listas rápidas",
       "url": "/#tab=sugestoes",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "splash_pages": ["/"],

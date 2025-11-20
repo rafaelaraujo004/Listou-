@@ -15,6 +15,46 @@ body {
 body::-webkit-scrollbar {
   display: none;
 }
+
+/* Forçar modo app standalone - ocultar elementos de navegador */
+@media all and (display-mode: standalone) {
+  html {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    overflow: hidden;
+  }
+  body {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Garantir aparência de app nativo */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ocultar barras de navegador do navegador */
+body {
+  overflow-x: hidden;
+}
+
+/* Ajuste para notch e áreas seguras em dispositivos móveis */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
 /* Responsividade para edição de listas salvas */
 .suggestion-card, .user-list-entry {
   width: 100%;

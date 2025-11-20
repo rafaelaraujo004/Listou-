@@ -1,3 +1,47 @@
+// ===== Sistema de Controle de Versão e Atualização Automática =====
+(function() {
+  const CURRENT_VERSION = '1.0.50';
+  const VERSION_KEY = 'listou.app.version';
+  
+  // Verificar se é uma nova versão
+  const savedVersion = localStorage.getItem(VERSION_KEY);
+  
+  if (savedVersion !== CURRENT_VERSION) {
+    console.log(`[App] Atualização detectada: ${savedVersion} -> ${CURRENT_VERSION}`);
+    
+    // Limpar cache do navegador
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(key => {
+          if (key.startsWith('listou-') && key !== `listou-v${CURRENT_VERSION}`) {
+            console.log(`[App] Limpando cache antigo: ${key}`);
+            caches.delete(key);
+          }
+        });
+      });
+    }
+    
+    // Atualizar versão salva
+    localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
+    
+    // Exibir versão nos elementos da página
+    setTimeout(() => {
+      document.querySelectorAll('#appVersion, #appVersionSide, #appVersionTop').forEach(el => {
+        if (el) el.textContent = CURRENT_VERSION;
+      });
+    }, 100);
+    
+    console.log(`[App] App atualizado para versão ${CURRENT_VERSION}`);
+  } else {
+    // Exibir versão nos elementos da página
+    setTimeout(() => {
+      document.querySelectorAll('#appVersion, #appVersionSide, #appVersionTop').forEach(el => {
+        if (el) el.textContent = CURRENT_VERSION;
+      });
+    }, 100);
+  }
+})();
+
 // Importação automática de lista compartilhada via URL (?lista=...)
 (function () {
   const params = new URLSearchParams(window.location.search);
