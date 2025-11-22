@@ -540,8 +540,41 @@ function upsertItem(partial){
   // Separar itens não comprados e comprados, filtrando por categoria se necessário
   let notDone = items.filter(i => !i.done && (!catFilter || (i.category||'Outros') === catFilter));
   let done = items.filter(i => i.done && (!catFilter || (i.category||'Outros') === catFilter));
-  // Ordenar: não comprados por ordem de adição (mais antigos no final), comprados pode manter ordem atual
-  notDone.sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
+  
+  // Aplicar ordenação baseada na seleção do usuário
+  if (sort === 'name') {
+    notDone.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    done.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  } else if (sort === 'price') {
+    notDone.sort((a, b) => {
+      const priceA = typeof a.price === 'string' ? Number(a.price.replace(',', '.')) : Number(a.price || 0);
+      const priceB = typeof b.price === 'string' ? Number(b.price.replace(',', '.')) : Number(b.price || 0);
+      return priceA - priceB;
+    });
+    done.sort((a, b) => {
+      const priceA = typeof a.price === 'string' ? Number(a.price.replace(',', '.')) : Number(a.price || 0);
+      const priceB = typeof b.price === 'string' ? Number(b.price.replace(',', '.')) : Number(b.price || 0);
+      return priceA - priceB;
+    });
+  } else if (sort === 'subtotal') {
+    notDone.sort((a, b) => {
+      const qtyA = typeof a.qty === 'string' ? Number(a.qty.replace(',', '.')) : Number(a.qty || 0);
+      const priceA = typeof a.price === 'string' ? Number(a.price.replace(',', '.')) : Number(a.price || 0);
+      const qtyB = typeof b.qty === 'string' ? Number(b.qty.replace(',', '.')) : Number(b.qty || 0);
+      const priceB = typeof b.price === 'string' ? Number(b.price.replace(',', '.')) : Number(b.price || 0);
+      return (qtyA * priceA) - (qtyB * priceB);
+    });
+    done.sort((a, b) => {
+      const qtyA = typeof a.qty === 'string' ? Number(a.qty.replace(',', '.')) : Number(a.qty || 0);
+      const priceA = typeof a.price === 'string' ? Number(a.price.replace(',', '.')) : Number(a.price || 0);
+      const qtyB = typeof b.qty === 'string' ? Number(b.qty.replace(',', '.')) : Number(b.qty || 0);
+      const priceB = typeof b.price === 'string' ? Number(b.price.replace(',', '.')) : Number(b.price || 0);
+      return (qtyA * priceA) - (qtyB * priceB);
+    });
+  } else {
+    // Ordenação padrão: por ordem de adição (mais antigos primeiro)
+    notDone.sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
+  }
 
     listEl.innerHTML='';
     // Valor previsto: soma de todos os itens, independente do status
@@ -579,7 +612,7 @@ function upsertItem(partial){
   ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
   '  </select></span>'
   +     '<span class="flex flex-col items-center"><span class="label">Categoria</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
-  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
+  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
   '  </select></span>'
   +   '</div>'
   + '</div>';
@@ -617,7 +650,7 @@ function upsertItem(partial){
   ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
   '  </select></span>'
   +     '<span class="flex flex-col items-center"><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
-  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
+  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
   '  </select></span>'
   +   '</div>'
   + '</div>';
@@ -636,6 +669,8 @@ function upsertItem(partial){
 
   // Atualiza lista ao mudar filtro de categoria
   $('#categoryFilter') && $('#categoryFilter').addEventListener('change', render);
+  // Atualiza lista ao mudar ordenação
+  $('#sort') && $('#sort').addEventListener('change', render);
   // Adiciona rolagem horizontal no filtro de categoria no mobile
   const catFilterEl = $('#categoryFilter');
   if (catFilterEl) {
@@ -699,19 +734,81 @@ function upsertItem(partial){
       save(); render(); return;
     }
   });
+  // Mapeamento inteligente de produtos para categorias
+  const productCategoryMap = {
+    // Cereais
+    'arroz': 'Cereais', 'arroz integral': 'Cereais', 'arroz parboilizado': 'Cereais',
+    'aveia': 'Cereais', 'granola': 'Cereais', 'quinoa': 'Cereais', 'chia': 'Cereais',
+    'linhaça': 'Cereais', 'cereal': 'Cereais', 'corn flakes': 'Cereais', 'flocos': 'Cereais',
+    'trigo': 'Cereais', 'farinha de trigo': 'Cereais', 'centeio': 'Cereais', 'cevada': 'Cereais',
+    // Laticínios
+    'leite': 'Laticínios', 'iogurte': 'Laticínios', 'queijo': 'Laticínios', 'manteiga': 'Laticínios',
+    'margarina': 'Laticínios', 'requeijão': 'Laticínios', 'cream cheese': 'Laticínios',
+    'nata': 'Laticínios', 'creme de leite': 'Laticínios', 'leite condensado': 'Laticínios',
+    // Hortifruti
+    'alface': 'Hortifruti', 'tomate': 'Hortifruti', 'cebola': 'Hortifruti', 'batata': 'Hortifruti',
+    'cenoura': 'Hortifruti', 'brócolis': 'Hortifruti', 'couve': 'Hortifruti', 'banana': 'Hortifruti',
+    'maçã': 'Hortifruti', 'laranja': 'Hortifruti', 'mamão': 'Hortifruti', 'abacaxi': 'Hortifruti',
+    'melancia': 'Hortifruti', 'uva': 'Hortifruti', 'morango': 'Hortifruti', 'limão': 'Hortifruti',
+    'pimentão': 'Hortifruti', 'pepino': 'Hortifruti', 'abobrinha': 'Hortifruti',
+    // Carnes
+    'carne': 'Carnes', 'frango': 'Carnes', 'peixe': 'Carnes', 'picanha': 'Carnes',
+    'costela': 'Carnes', 'linguiça': 'Carnes', 'bacon': 'Carnes', 'salsicha': 'Carnes',
+    'presunto': 'Carnes', 'peito de frango': 'Carnes', 'file': 'Carnes', 'filé': 'Carnes',
+    // Bebidas
+    'refrigerante': 'Bebidas', 'suco': 'Bebidas', 'água': 'Bebidas', 'cerveja': 'Bebidas',
+    'vinho': 'Bebidas', 'café': 'Bebidas', 'chá': 'Bebidas', 'energético': 'Bebidas',
+    // Limpeza
+    'detergente': 'Limpeza', 'sabão': 'Limpeza', 'água sanitária': 'Limpeza', 'desinfetante': 'Limpeza',
+    'amaciante': 'Limpeza', 'alvejante': 'Limpeza', 'esponja': 'Limpeza', 'pano': 'Limpeza',
+    // Higiene
+    'shampoo': 'Higiene', 'condicionador': 'Higiene', 'sabonete': 'Higiene', 'pasta de dente': 'Higiene',
+    'escova de dente': 'Higiene', 'desodorante': 'Higiene', 'papel higiênico': 'Higiene',
+    // Mercearia
+    'feijão': 'Mercearia', 'macarrão': 'Mercearia', 'óleo': 'Mercearia', 'açúcar': 'Mercearia',
+    'sal': 'Mercearia', 'pão': 'Mercearia', 'biscoito': 'Mercearia', 'bolacha': 'Mercearia'
+  };
+
+  function suggestCategory(productName) {
+    const nameLower = productName.toLowerCase().trim();
+    // Busca exata
+    if (productCategoryMap[nameLower]) return productCategoryMap[nameLower];
+    // Busca parcial (se o nome do produto contém alguma palavra-chave)
+    for (const [key, category] of Object.entries(productCategoryMap)) {
+      if (nameLower.includes(key) || key.includes(nameLower)) {
+        return category;
+      }
+    }
+    return null;
+  }
+
   // Form adicionar
   const addForm = $('#addForm');
-  addForm?.addEventListener('submit', (e)=>{
+  addForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const categoryValue = $('#category')?.value?.trim() || '';
+    const productName = $('#name')?.value?.trim() || '';
     const it = {
-      name: $('#name')?.value?.trim() || '',
-      category: $('#category')?.value || 'Outros',
+      name: productName,
+      category: categoryValue,
       unit: $('#unit')?.value || 'un',
       qty: parseFloat($('#qty')?.value?.replace(',','.')) || 1,
       price: parseFloat($('#price')?.value?.replace(',','.')) || 0
     };
+    
     if(!it.name){ alert('Dê um nome ao item.'); $('#name')?.focus(); return; }
-    upsertItem(it); addForm.reset(); $('#qty') && ($('#qty').value=1); $('#unit') && ($('#unit').value='un'); $('#name')?.focus();
+    if(!categoryValue){ alert('Selecione uma categoria para o item.'); $('#category')?.focus(); return; }
+    
+    // Verificar se a categoria sugerida é diferente da selecionada
+    const suggestedCat = suggestCategory(productName);
+    if (suggestedCat && suggestedCat !== categoryValue) {
+      const confirmMsg = `🤔 Detectamos que "${productName}" normalmente pertence à categoria "${suggestedCat}"\n\nVocê selecionou: ${categoryValue}\nSugerimos: ${suggestedCat}\n\nDeseja usar a categoria sugerida?`;
+      if (confirm(confirmMsg)) {
+        it.category = suggestedCat;
+      }
+    }
+    
+    upsertItem(it); addForm.reset(); $('#qty') && ($('#qty').value=1); $('#unit') && ($('#unit').value='un'); $('#category') && ($('#category').selectedIndex=0); $('#name')?.focus();
   });
 
   // Templates prontas
@@ -720,6 +817,139 @@ function upsertItem(partial){
     arr.forEach(it=> upsertItem(it));
     alert('Lista adicionada à sua lista atual!');
   }));
+
+  // Botões de editar templates
+  $$('.edit-tpl').forEach(btn=> btn.addEventListener('click', ()=>{
+    const arr = JSON.parse(btn.getAttribute('data-template') || '[]');
+    openTemplateEditModal(arr);
+  }));
+
+  // Função para abrir modal de edição de template
+  function openTemplateEditModal(templateItems) {
+    const modal = document.createElement('div');
+    modal.id = 'editTemplateModal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 backdrop-blur-sm';
+    modal.innerHTML = `
+      <div class="bg-slate-900 rounded-2xl p-4 md:p-6 w-full max-w-lg max-h-[95vh] overflow-y-auto shadow-2xl relative border border-slate-700">
+        <button id="closeEditTemplateModal" class="absolute top-3 right-3 text-2xl px-2 py-1 rounded-lg hover:bg-white/10 transition-colors z-10">✕</button>
+        <h2 class="text-xl font-bold mb-4 pr-8 flex items-center gap-2">
+          <span class="text-2xl">📝</span>
+          <span>Editar lista</span>
+        </h2>
+        <div id="editTemplateItemsBox" class="space-y-3 mb-4"></div>
+        <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-700 sticky bottom-0 bg-slate-900">
+          <button id="addEditTemplateBtn" class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold shadow-lg transition-all">
+            ✅ Adicionar à lista
+          </button>
+          <button id="cancelEditTemplateBtn" class="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-all">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    let tempItems = templateItems.map(i => ({...i}));
+    const itemsBox = modal.querySelector('#editTemplateItemsBox');
+    const closeBtn = modal.querySelector('#closeEditTemplateModal');
+    const addBtn = modal.querySelector('#addEditTemplateBtn');
+    const cancelBtn = modal.querySelector('#cancelEditTemplateBtn');
+
+    function renderTemplateEditItems() {
+      const unidades = ['un','kg','g','L','ml','pct'];
+      const categorias = ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'];
+      itemsBox.innerHTML = tempItems.map((it, i) => `
+        <div class='relative bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 hover:border-slate-600 transition-all'>
+          <button class='remove-template-item absolute -top-2 -right-2 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-sm shadow-lg transition-all z-10' data-i='${i}' title='Remover'>✕</button>
+          
+          <div class='space-y-2'>
+            <input type='text' class='w-full px-3 py-2.5 rounded-lg bg-slate-900 text-white text-base border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all' value='${it.name||''}' data-i='${i}' data-f='name' placeholder='🛒 Nome do produto'>
+            
+            <div class='grid grid-cols-2 gap-2'>
+              <div>
+                <label class='text-xs text-slate-400 mb-1 block'>Quantidade</label>
+                <input type='number' class='w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-base border border-slate-700 focus:border-blue-500 outline-none transition-all' value='${it.qty||1}' min='0.01' step='0.01' data-i='${i}' data-f='qty' placeholder='0'>
+              </div>
+              <div>
+                <label class='text-xs text-slate-400 mb-1 block'>Unidade</label>
+                <select class='w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-base border border-slate-700 focus:border-blue-500 outline-none transition-all' data-i='${i}' data-f='unit'>
+                  ${unidades.map(u=>`<option value='${u}'${(it.unit||'un')===u?' selected':''}>${u}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            
+            <div class='grid grid-cols-2 gap-2'>
+              <div>
+                <label class='text-xs text-slate-400 mb-1 block'>Preço (R$)</label>
+                <input type='number' class='w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-base border border-slate-700 focus:border-blue-500 outline-none transition-all' value='${it.price||0}' min='0' step='0.01' data-i='${i}' data-f='price' placeholder='0.00'>
+              </div>
+              <div>
+                <label class='text-xs text-slate-400 mb-1 block'>Categoria</label>
+                <select class='w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-base border border-slate-700 focus:border-blue-500 outline-none transition-all' data-i='${i}' data-f='category'>
+                  ${categorias.map(c=>`<option value='${c}'${(it.category||'Outros')===c?' selected':''}>${c}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('') + `
+        <button class='add-template-item w-full px-4 py-3 rounded-xl bg-slate-800/50 hover:bg-slate-700 border-2 border-dashed border-slate-600 hover:border-emerald-500 text-white font-semibold transition-all flex items-center justify-center gap-2'>
+          <span class='text-xl'>+</span>
+          <span>Adicionar novo item</span>
+        </button>
+      `;
+      
+      const firstInput = itemsBox.querySelector('input');
+      if(firstInput) setTimeout(()=>firstInput.focus(), 100);
+      
+      const addNewBtn = itemsBox.querySelector('.add-template-item');
+      if(addNewBtn) addNewBtn.onclick = ()=>{
+        tempItems.push({name:'', qty:1, unit:'un', price:0, category:'Outros'});
+        renderTemplateEditItems();
+      };
+    }
+
+    renderTemplateEditItems();
+
+    itemsBox.oninput = (ev) => {
+      const t = ev.target;
+      const i = Number(t.getAttribute('data-i'));
+      const f = t.getAttribute('data-f');
+      if (!Number.isFinite(i) || !f) return;
+      let val = t.value;
+      if (f === 'qty' || f === 'price') val = Number(val);
+      tempItems[i][f] = val;
+    };
+
+    itemsBox.onclick = (ev) => {
+      const t = ev.target;
+      if (t.classList.contains('remove-template-item')) {
+        const i = Number(t.getAttribute('data-i'));
+        if (Number.isFinite(i)) {
+          tempItems.splice(i, 1);
+          renderTemplateEditItems();
+        }
+      }
+    };
+
+    addBtn.onclick = () => {
+      const validItems = tempItems.filter(it => it.name && it.qty > 0);
+      if(validItems.length === 0) {
+        alert('Adicione pelo menos um item válido!');
+        return;
+      }
+      validItems.forEach(it=> upsertItem(it));
+      alert(`${validItems.length} ite${validItems.length > 1 ? 'ns adicionados' : 'm adicionado'} à sua lista!`);
+      modal.remove();
+    };
+
+    closeBtn.onclick = () => { modal.remove(); };
+    cancelBtn.onclick = () => { modal.remove(); };
+
+    modal.onclick = (ev) => {
+      if (ev.target === modal) modal.remove();
+    };
+  }
 
   // Copiar lista
   $('#copyList')?.addEventListener('click', ()=>{
@@ -983,7 +1213,7 @@ function upsertItem(partial){
         let tempItems = userLists[idx].items.map(i => ({...i}));
         function renderEditItems() {
           const unidades = ['un','kg','g','L','ml','pct'];
-          const categorias = ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Outros'];
+          const categorias = ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'];
           itemsBox.innerHTML = tempItems.map((it, i) => `
             <div class='flex flex-col md:flex-row gap-2 items-center mb-2 p-3 rounded-lg shadow suggestion-card'>
               <div class='flex-1 flex flex-col md:flex-row gap-2 items-center'>
