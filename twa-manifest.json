@@ -1,0 +1,50 @@
+{
+  "packageId": "app.vercel.listou_iota.twa",
+  "host": "listou-phi.vercel.app",
+  "name": "Listou — Lista de Compras",
+  "launcherName": "Listou",
+  "display": "standalone",
+  "themeColor": "#0F172A",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#0F172A",
+  "enableNotifications": true,
+  "startUrl": "/?standalone=true",
+  "iconUrl": "https://listou-phi.vercel.app/icon-512-maskable.png",
+  "maskableIconUrl": "https://listou-phi.vercel.app/icon-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:\\Users\\Rafael Araújo\\Downloads\\Listou main\\android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "11",
+  "appVersionCode": 11,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://listou-phi.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://listou-phi.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "focus-existing",
+  "displayOverride": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "appVersion": "11"
+}

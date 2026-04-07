@@ -1,0 +1,14 @@
+{
+  "name": "listou",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Listou - Lista de compras PWA neutra futurista",
+  "scripts": {
+    "icons:imagemagick": "magick convert logo.svg -resize 192x192 icon-192.png && magick convert logo.svg -resize 512x512 icon-512.png",
+    "icons:sharp": "node scripts/gen-icons.js",
+    "icons": "npm run icons:sharp || npm run icons:imagemagick"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.3"
+  }
+}

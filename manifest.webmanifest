@@ -1,0 +1,141 @@
+{
+    "name": "Listou — Lista de Compras",
+    "short_name": "Listou — Lista de Compras",
+    "description": "Sua lista de compras rápida, inteligente e com relatórios.",
+    "start_url": "/?standalone=true",
+    "scope": "/",
+    "id": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "portrait-primary",
+    "background_color": "#0f172a",
+    "theme_color": "#0f172a",
+    "lang": "pt-BR",
+    "dir": "ltr",
+    "categories": ["shopping", "productivity", "lifestyle"],
+    "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+    "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    },
+    "handle_links": "preferred",
+    "share_target": {
+        "action": "/share",
+        "method": "GET",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    },
+    "widgets": [
+        {
+            "name": "Lista Rápida",
+            "short_name": "Lista",
+            "description": "Acesso rápido à sua lista de compras",
+            "tag": "quick-list",
+            "template": "quick-list-template",
+            "ms_ac_template": "quick-list-adaptive-card.json",
+            "data": "/widget-data/quick-list.json",
+            "type": "application/json",
+            "screenshots": [
+                {
+                    "src": "widget-screenshot.png",
+                    "sizes": "256x256",
+                    "label": "Widget de lista rápida"
+                }
+            ],
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ],
+            "auth": false,
+            "update": 3600
+        }
+    ],
+    "edge_side_panel": {
+        "preferred_width": 400
+    },
+    "protocol_handlers": [
+        {
+            "protocol": "web+listou",
+            "url": "/?action=%s"
+        }
+    ],
+    "file_handlers": [
+        {
+            "action": "/",
+            "accept": {
+                "text/csv": [".csv"],
+                "application/json": [".json"]
+            }
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshot-mobile.png",
+            "sizes": "320x640",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "screenshot-desktop.png", 
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
+    "icons": [
+        { "src": "icon-72.png", "sizes": "72x72", "type": "image/png" },
+        { "src": "icon-96.png", "sizes": "96x96", "type": "image/png" },
+        { "src": "icon-128.png", "sizes": "128x128", "type": "image/png" },
+        { "src": "icon-144.png", "sizes": "144x144", "type": "image/png" },
+        { "src": "icon-152.png", "sizes": "152x152", "type": "image/png" },
+        { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icon-384.png", "sizes": "384x384", "type": "image/png" },
+        { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+        { "src": "icon-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nova Lista",
+            "short_name": "Nova Lista",
+            "description": "Criar uma nova lista de compras",
+            "url": "/?action=new-list",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Templates",
+            "short_name": "Templates",
+            "description": "Usar templates pré-definidos",
+            "url": "/?action=templates",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Relatórios",
+            "short_name": "Relatórios",
+            "description": "Ver relatórios de gastos",
+            "url": "/?action=analytics",
+            "icons": [
+                {
+                    "src": "icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}

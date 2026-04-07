@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Direto - Botões</title>
+</head>
+<body>
+    <h1>Teste Direto dos Botões</h1>
+    
+    <button onclick="testCasualClick()">🛒 Testar Clique Casual</button>
+    <button onclick="testControlledClick()">📊 Testar Clique Controlada</button>
+    <button onclick="openMainApp()">🚀 Abrir App</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testCasualClick() {
+            // Simula o clique no botão casual
+            localStorage.setItem('listou-purchase-type', 'casual');
+            document.getElementById('result').innerHTML = '<p>✅ Tipo Casual salvo! Abrindo app...</p>';
+            setTimeout(() => {
+                window.open('index.html', '_blank');
+            }, 1000);
+        }
+        
+        function testControlledClick() {
+            // Simula o clique no botão controlada
+            localStorage.setItem('listou-purchase-type', 'controlled');
+            document.getElementById('result').innerHTML = '<p>✅ Tipo Controlada salvo! Abrindo app...</p>';
+            setTimeout(() => {
+                window.open('index.html', '_blank');
+            }, 1000);
+        }
+        
+        function openMainApp() {
+            window.open('index.html', '_blank');
+        }
+    </script>
+</body>
+</html>

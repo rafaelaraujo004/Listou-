@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Ícones - Listou</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .icon-item {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .icon-item canvas {
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .download-area {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Gerador de Ícones - Listou</h1>
+        <p>Esta ferramenta irá gerar todos os ícones necessários para o seu PWA usando o logo.svg existente.</p>
+        
+        <div class="download-area">
+            <h3>📥 Ações</h3>
+            <button onclick="generateAllIcons()">Gerar Todos os Ícones</button>
+            <button onclick="downloadAll()">Baixar Todos</button>
+            <button onclick="clearLog()">Limpar Log</button>
+        </div>
+
+        <div class="icon-preview" id="iconPreview"></div>
+
+        <div class="log" id="log">Clique em "Gerar Todos os Ícones" para começar...</div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        const iconPreview = document.getElementById('iconPreview');
+        
+        // Tamanhos necessários para PWA
+        const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const maskableIcons = [192, 512]; // Ícones que precisam da versão maskable
+        
+        let generatedIcons = new Map();
+
+        function addLog(message) {
+            log.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            log.textContent = '';
+        }
+
+        async function loadSVG() {
+            try {
+                const response = await fetch('logo.svg');
+                const svgText = await response.text();
+                return svgText;
+            } catch (error) {
+                addLog('❌ Erro ao carregar logo.svg: ' + error.message);
+                return null;
+            }
+        }
+
+        function createIconCanvas(size, svgText, isMaskable = false) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Background para ícones maskable (área de segurança)
+                if (isMaskable) {
+                    ctx.fillStyle = '#667eea'; // Cor do tema
+                    ctx.fillRect(0, 0, size, size);
+                }
+
+                const img = new Image();
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+
+                img.onload = function() {
+                    // Para ícones maskable, deixamos uma margem de 20% (safe zone)
+                    const margin = isMaskable ? size * 0.2 : size * 0.1;
+                    const iconSize = size - (margin * 2);
+                    
+                    ctx.drawImage(img, margin, margin, iconSize, iconSize);
+                    URL.revokeObjectURL(url);
+                    resolve(canvas);
+                };
+
+                img.src = url;
+            });
+        }
+
+        async function generateIcon(size, svgText, isMaskable = false) {
+            try {
+                const canvas = await createIconCanvas(size, svgText, isMaskable);
+                const filename = isMaskable ? `icon-${size}-maskable.png` : `icon-${size}.png`;
+                
+                // Converter para blob
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => {
+                        generatedIcons.set(filename, blob);
+                        addLog(`✅ Gerado: ${filename} (${(blob.size / 1024).toFixed(1)}KB)`);
+                        
+                        // Adicionar preview
+                        const previewItem = document.createElement('div');
+                        previewItem.className = 'icon-item';
+                        previewItem.innerHTML = `
+                            <canvas width="64" height="64"></canvas>
+                            <div>${size}x${size}</div>
+                            <div style="font-size: 12px; color: #666;">${isMaskable ? 'Maskable' : 'Any'}</div>
+                        `;
+                        
+                        const previewCanvas = previewItem.querySelector('canvas');
+                        const previewCtx = previewCanvas.getContext('2d');
+                        previewCtx.drawImage(canvas, 0, 0, 64, 64);
+                        
+                        iconPreview.appendChild(previewItem);
+                        resolve(blob);
+                    }, 'image/png', 0.9);
+                });
+            } catch (error) {
+                addLog(`❌ Erro ao gerar ícone ${size}px: ${error.message}`);
+                return null;
+            }
+        }
+
+        async function generateAllIcons() {
+            addLog('🚀 Iniciando geração de ícones...');
+            iconPreview.innerHTML = '';
+            generatedIcons.clear();
+
+            const svgText = await loadSVG();
+            if (!svgText) return;
+
+            // Gerar ícones normais (any)
+            for (const size of iconSizes) {
+                await generateIcon(size, svgText, false);
+            }
+
+            // Gerar ícones maskable
+            for (const size of maskableIcons) {
+                await generateIcon(size, svgText, true);
+            }
+
+            addLog(`🎉 Geração concluída! ${generatedIcons.size} ícones criados.`);
+        }
+
+        function downloadAll() {
+            if (generatedIcons.size === 0) {
+                addLog('⚠️ Nenhum ícone foi gerado ainda!');
+                return;
+            }
+
+            addLog('📦 Iniciando download dos ícones...');
+
+            generatedIcons.forEach((blob, filename) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            addLog(`✅ Download concluído! ${generatedIcons.size} arquivos baixados.`);
+        }
+
+        // Auto-gerar ícones quando a página carregar
+        window.addEventListener('load', () => {
+            setTimeout(generateAllIcons, 1000);
+        });
+    </script>
+</body>
+</html>

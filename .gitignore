@@ -1,0 +1,22 @@
+# Arquivos de assinatura e chaves - NUNCA fazer commit destes
+*.keystore
+*.jks
+*.p12
+*.pfx
+signing-key-info.txt
+upload-keystore.jks
+local.properties
+
+# Build outputs
+build/
+aab_extracted/
+*.aab
+.gradle/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
