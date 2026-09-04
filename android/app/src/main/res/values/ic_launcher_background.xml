@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo do ícone adaptativo: o azul-escuro da identidade do Listou. -->
+    <color name="ic_launcher_background">#12B886</color>
+</resources>

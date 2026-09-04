@@ -1,5 +1,5 @@
 // IMPORTANTE: Incrementar a versão a cada atualização do app
-const APP_VERSION = '1.0.50';
+const APP_VERSION = '1.2.1';
 const CACHE_NAME = `listou-v${APP_VERSION}`;
 const CORE_ASSETS = [
   './',

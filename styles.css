@@ -3,7 +3,8 @@ html, body {
   overscroll-behavior-y: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background: #0f172a;
+  /* A cor vem do tema; fixá-la aqui deixava o modo claro com fundo escuro. */
+  background: var(--bg1);
 }
 body {
   min-height: 100vh;
@@ -428,9 +429,10 @@ button.bg-blue-700:hover {
   --accent-light: #e3f0ff;
   --grad1: #f6f8fa;
   --grad2: #e9ecef;
+}
+
 body, .card, .shopping-card, .kpi-card, .tab-section, .sidebar, .item-name, .item-info-compact, .muted, h1, h2, h3, h4, h5, h6, label, input, select, button, span, div, th, td, p, a {
   color: var(--text) !important;
-}
 }
 
 [data-theme="light"] {
@@ -1658,3 +1660,140 @@ button.tab-btn:hover, button.tab-btn:focus {
 }
 
 
+
+/* ===== Toasts e modais próprios =====
+   Substituem alert/confirm/prompt nativos, que num app empacotado aparecem
+   como "localhost diz:" e quebram a identidade visual. */
+#toastHost {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(94vw, 26rem);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.875rem;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--ring);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  pointer-events: auto;
+  animation: toast-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.toast.leaving { animation: toast-out 0.18s ease-in forwards; }
+.toast .toast-icon { flex: 0 0 auto; font-size: 1rem; line-height: 1.35; }
+.toast .toast-msg { flex: 1 1 auto; white-space: pre-line; }
+.toast-success { border-left: 4px solid #10b981; }
+.toast-error   { border-left: 4px solid #ef4444; }
+.toast-info    { border-left: 4px solid var(--accent); }
+
+@keyframes toast-in  { from { opacity: 0; transform: translateY(0.75rem) scale(0.98); } }
+@keyframes toast-out { to   { opacity: 0; transform: translateY(0.5rem)  scale(0.98); } }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.62);
+  backdrop-filter: blur(3px);
+  animation: fade-in 0.15s ease-out;
+}
+.modal-box {
+  width: min(94vw, 24rem);
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--ring);
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  padding: 1.125rem;
+  animation: modal-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.modal-msg { font-size: 0.9375rem; line-height: 1.45; white-space: pre-line; margin-bottom: 0.875rem; }
+.modal-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.625rem;
+  margin-bottom: 0.875rem;
+  font-size: 0.9375rem;
+}
+.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.modal-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.modal-cancel { background: var(--surface-strong); color: var(--text); border-color: var(--ring) !important; }
+.modal-ok { background: var(--accent); color: #fff; }
+.modal-ok.danger { background: #ef4444; }
+
+@keyframes fade-in  { from { opacity: 0; } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(0.75rem) scale(0.97); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .modal-backdrop, .modal-box, .animate-fadein { animation: none !important; }
+}
+
+/* ===== Ajustes para o app empacotado (APK) ===== */
+
+/* O botão de menu é fixo em telas pequenas e ficava sob a barra de status
+   do Android; env() o mantém abaixo do notch. */
+@media (max-width: 900px) {
+  .hamburger-btn {
+    top: calc(18px + env(safe-area-inset-top)) !important;
+    left: calc(18px + env(safe-area-inset-left)) !important;
+  }
+}
+
+/* button:focus zerava o outline e clareava o fundo, o que sumia com o foco
+   no teclado e piscava no tema escuro. O anel volta só na navegação por
+   teclado, sem afetar o toque. */
+button:focus:not(:focus-visible) { box-shadow: none; }
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Alvos de toque confortáveis no celular (mínimo recomendado: 44px). */
+@media (pointer: coarse) {
+  button, select { min-height: 44px; }
+  .toast { min-height: auto; }
+  button.tab-btn { min-height: 48px; }
+  /* Os botões compactos dentro de cards têm alvo próprio e não devem esticar. */
+  li button, .product-card button, .suggestion-card button { min-height: 36px; }
+}
+
+/* O hover com translateY grudava em telas de toque depois do tap. */
+@media (hover: none) {
+  button:hover, input[type="button"]:hover, input[type="submit"]:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Evita a seleção de texto acidental ao segurar botões no Android. */
+button, .tab-btn, .toast {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}

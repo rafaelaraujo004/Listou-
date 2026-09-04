@@ -16,9 +16,84 @@ function playSound(soundName) {
   } catch (e) {}
 }
 
+// ===== Toasts e diálogos =====
+// alert/confirm/prompt nativos aparecem como "localhost diz:" no app empacotado,
+// então a UI usa toasts e modais próprios. toast() substitui alert();
+// uiConfirm()/uiPrompt() são assíncronos e devolvem Promise.
+function toast(message, type = 'info', duration = 3200) {
+  let host = document.getElementById('toastHost');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'toastHost';
+    host.setAttribute('role', 'status');
+    host.setAttribute('aria-live', 'polite');
+    document.body.appendChild(host);
+  }
+  const icons = { success: '✅', error: '⚠️', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span>' +
+                 '<span class="toast-msg"></span>';
+  el.querySelector('.toast-msg').textContent = message;
+  host.appendChild(el);
+  const remove = () => {
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 200);
+  };
+  const timer = setTimeout(remove, duration);
+  el.addEventListener('click', () => { clearTimeout(timer); remove(); });
+}
+
+// Modal genérico. Resolve com o valor de confirmação (ou null se cancelado).
+function openModal({ message, okLabel = 'OK', cancelLabel = 'Cancelar', danger = false, input = null }) {
+  return new Promise(resolve => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML =
+      '<div class="modal-box" role="dialog" aria-modal="true">' +
+        '<div class="modal-msg"></div>' +
+        (input === null ? '' : '<input class="modal-input" type="text">') +
+        '<div class="modal-actions">' +
+          '<button type="button" class="modal-cancel"></button>' +
+          '<button type="button" class="modal-ok' + (danger ? ' danger' : '') + '"></button>' +
+        '</div>' +
+      '</div>';
+    backdrop.querySelector('.modal-msg').textContent = message;
+    backdrop.querySelector('.modal-cancel').textContent = cancelLabel;
+    backdrop.querySelector('.modal-ok').textContent = okLabel;
+    const field = backdrop.querySelector('.modal-input');
+    if (field) field.value = input;
+
+    const close = value => { document.removeEventListener('keydown', onKey); backdrop.remove(); resolve(value); };
+    const onKey = e => {
+      if (e.key === 'Escape') close(input === null ? false : null);
+      if (e.key === 'Enter' && field) close(field.value);
+    };
+    backdrop.querySelector('.modal-ok').addEventListener('click', () =>
+      close(input === null ? true : field.value));
+    backdrop.querySelector('.modal-cancel').addEventListener('click', () =>
+      close(input === null ? false : null));
+    backdrop.addEventListener('click', e => {
+      if (e.target === backdrop) close(input === null ? false : null);
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(backdrop);
+    (field || backdrop.querySelector('.modal-ok')).focus();
+  });
+}
+
+function uiConfirm(message, { okLabel = 'Confirmar', danger = false } = {}) {
+  return openModal({ message, okLabel, danger });
+}
+
+function uiPrompt(message, defaultValue = '') {
+  return openModal({ message, okLabel: 'Salvar', input: defaultValue });
+}
+
+
 // ===== Sistema de Controle de Versão e Atualização Automática =====
 (function() {
-  const CURRENT_VERSION = '1.0.50';
+  const CURRENT_VERSION = '1.2.1';
   const VERSION_KEY = 'listou.app.version';
   
   // Verificar se é uma nova versão
@@ -83,7 +158,7 @@ function playSound(soundName) {
         if (Array.isArray(lista) && lista.length) {
           localStorage.setItem('listou.items.v3', JSON.stringify(lista));
           window.history.replaceState({}, document.title, window.location.pathname);
-          setTimeout(() => alert('Lista de compras importada com sucesso!'), 300);
+          setTimeout(() => toast('Lista de compras importada com sucesso!', 'success'), 300);
           if (typeof render === 'function') render();
         }
       }
@@ -98,11 +173,11 @@ function playSound(soundName) {
       if (Array.isArray(lista) && lista.length) {
         localStorage.setItem('listou.items.v3', JSON.stringify(lista));
         window.history.replaceState({}, document.title, window.location.pathname);
-        setTimeout(() => alert('Lista de compras importada com sucesso!'), 300);
+        setTimeout(() => toast('Lista de compras importada com sucesso!', 'success'), 300);
         if (typeof render === 'function') render();
       }
     } catch (e) {
-      alert('Não foi possível importar a lista compartilhada.');
+      toast('Não foi possível importar a lista compartilhada.', 'error');
     }
   }
 })();
@@ -125,20 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
       closeSidebar.classList.add('hidden');
     });
   }
-  // Fecha sidebar ao clicar fora dela (mobile)
-  document.addEventListener('click', function(e) {
-    if (window.innerWidth <= 900 && document.body.classList.contains('sidebar-open')) {
-      if (!sidebar.contains(e.target) && !toggleSidebar.contains(e.target)) {
-        sidebar.classList.add('hidden');
-        document.body.classList.remove('sidebar-open');
-        if (closeSidebar) closeSidebar.classList.add('hidden');
-      }
-    }
-  });
+  // O fechamento por clique fora fica a cargo do handler da barra inferior.
 });
   // Função para limpar todos os dados do usuário
-  function clearAllUserData() {
-    if(confirm('Tem certeza que deseja remover todos os dados? Esta ação não pode ser desfeita.')) {
+  async function clearAllUserData() {
+    if (await uiConfirm('Tem certeza que deseja remover todos os dados? Esta ação não pode ser desfeita.', { okLabel: 'Remover tudo', danger: true })) {
       localStorage.clear();
       location.reload();
     }
@@ -165,28 +231,48 @@ document.addEventListener('DOMContentLoaded', function() {
       history.forEach(entry => {
         const li = document.createElement('li');
         const data = new Date(entry.at);
-        const nome = entry.name || data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR').slice(0,5);
+        const nome = entry.name || 'Compra';
+        const quando = data.toLocaleDateString('pt-BR') + ' às ' + data.toLocaleTimeString('pt-BR').slice(0,5);
+        const nItens = (entry.items||[]).length;
         // Calcula total da compra
         const total = (entry.items||[]).reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
         // Mercado salvo
         const mercado = entry.market || entry.mercado || '—';
-        li.className = 'flex items-center justify-between bg-white/10 rounded p-2';
-        li.innerHTML = `<div><b>${nome}</b><br><span class='text-xs muted'>${data.toLocaleString('pt-BR')}</span><br><span class='text-xs'>Mercado: <b>${mercado}</b></span><br><span class='text-xs'>Total: <b>${money(total)}</b></span></div>
-          <button class='px-2 py-1 ml-2 rounded bg-blue-600 hover:bg-blue-700 text-xs' data-restore='${entry.id}'>Usar</button>`;
+        li.className = 'hist-row';
+        li.innerHTML = `<div class='hist-info'>
+            <b class='hist-title'>${nome}</b>
+            <span class='hist-meta'>${quando} • ${nItens} ite${nItens === 1 ? 'm' : 'ns'}</span>
+            <span class='hist-meta'>${mercado} • <b class='hist-total'>${money(total)}</b></span>
+          </div>
+          <div class='hist-actions'>
+            <button class='hist-use' data-restore='${entry.id}'>Usar</button>
+            <button class='hist-del' data-del-hist='${entry.id}' aria-label='Excluir do histórico' title='Excluir'>
+              <svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/></svg>
+            </button>
+          </div>`;
         list.appendChild(li);
+      });
+      list.querySelectorAll('button[data-del-hist]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-del-hist');
+          if (!await uiConfirm('Excluir esta compra do histórico?', { okLabel: 'Excluir', danger: true })) return;
+          history = history.filter(h => h.id !== id);
+          save(); renderHistorico(); renderReports();
+          toast('Compra removida do histórico.', 'success');
+        });
       });
       // Evento para restaurar lista
       list.querySelectorAll('button[data-restore]').forEach(btn => {
-        btn.addEventListener('click', e => {
+        btn.addEventListener('click', async e => {
           const id = btn.getAttribute('data-restore');
           const entry = history.find(h => h.id === id);
           if (!entry) return;
-          if (!confirm('Deseja substituir sua lista atual por esta do histórico?')) return;
+          if (!await uiConfirm('Deseja substituir sua lista atual por esta do histórico?', { okLabel: 'Substituir' })) return;
           items = entry.items.map(i => Object.assign({}, i));
           save();
           render();
           setTab('lista');
-          alert('Lista restaurada do histórico!');
+          toast('Lista restaurada do histórico!', 'success');
         });
       });
     }
@@ -240,6 +326,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function toggleTheme() {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
+    // Os graficos guardam as cores de quando foram criados: refaz com o tema novo.
+    if (window.aplicarTemaGraficos) {
+      window.aplicarTemaGraficos();
+      try { renderInsights(); renderReports(); } catch (e) {}
+    }
     
     // Add spin animation to theme icon
     const themeIcon = $('#themeIcon');
@@ -275,7 +366,24 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   function setTab(id){
     $$('.tab-section').forEach(s=>s.classList.add('hidden'));
-    $('#tab-'+id)?.classList.remove('hidden');
+    const sec = $('#tab-'+id);
+    sec?.classList.remove('hidden');
+    $$('#bottomNav .bnav-item').forEach(b =>
+      b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === id)));
+    $$('.tab-btn').forEach(b =>
+      b.classList.toggle('tab-btn-active', b.getAttribute('data-tab') === id));
+    if (!sec) return;
+    // Os gráficos nascem com a aba ainda em display:none, quando o container
+    // mede 0px, e o Chart.js não se reajusta sozinho ao reaparecer. Recalcular
+    // aqui também garante que os dados refletem a lista atual.
+    if (id === 'insights') renderInsights();
+    if (id === 'relatorios') renderReports();
+    if (window.Chart) {
+      requestAnimationFrame(()=> sec.querySelectorAll('canvas').forEach(c => {
+        const chart = Chart.getChart(c);
+        if (chart) chart.resize();
+      }));
+    }
   }
   $$('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=> {
     setTab(btn.getAttribute('data-tab'));
@@ -294,6 +402,109 @@ document.addEventListener('DOMContentLoaded', function() {
       renderHistorico();
     }
   }));
+  // A barra inferior delega no botao equivalente da sidebar, que ja tem toda a logica.
+  $$('#bottomNav .bnav-item[data-tab]').forEach(item => {
+    item.addEventListener('click', () => {
+      const alvo = $$('.tab-btn').find(b => b.getAttribute('data-tab') === item.getAttribute('data-tab'));
+      if (alvo) alvo.click(); else setTab(item.getAttribute('data-tab'));
+    });
+  });
+  // "Mais" abre a sidebar, onde ficam as abas que nao couberam na barra.
+  function abrirMenu(){
+    const sb = $('#sidebar');
+    if (!sb) return;
+    sb.classList.remove('hidden');
+    document.body.classList.add('sidebar-open');
+    $('#closeSidebar')?.classList.remove('hidden');
+  }
+  function fecharMenu(){
+    const sb = $('#sidebar');
+    if (!sb) return;
+    sb.classList.add('hidden');
+    document.body.classList.remove('sidebar-open');
+  }
+  $('#bnavMore')?.addEventListener('click', () => { playSound('click'); abrirMenu(); });
+  $('#closeSidebar')?.addEventListener('click', fecharMenu);
+  // Tocar fora do drawer fecha, como se espera de um menu lateral.
+  document.addEventListener('click', e => {
+    if (!document.body.classList.contains('sidebar-open')) return;
+    if (e.target.closest('#sidebar') || e.target.closest('#bnavMore')) return;
+    fecharMenu();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharMenu(); });
+
+  // Folha de novo item: o formulario so ocupa a tela quando e chamado.
+  const addSheet = $('#addSheet');
+  function abrirSheet(){
+    if (!addSheet) return;
+    addSheet.hidden = false;
+    requestAnimationFrame(()=> addSheet.classList.add('is-open'));
+    document.body.classList.add('sheet-open');
+    // Sem foco automatico: ele abriria a lista de sugestoes por cima do formulario.
+  }
+  function fecharSheet(){
+    if (!addSheet) return;
+    addSheet.classList.remove('is-open');
+    document.body.classList.remove('sheet-open');
+    // espera a animacao antes de tirar do fluxo
+    setTimeout(()=> { addSheet.hidden = true; }, 220);
+  }
+  $('#fabAdd')?.addEventListener('click', ()=> { playSound('click'); abrirSheet(); });
+  addSheet?.querySelectorAll('[data-close-sheet]').forEach(el =>
+    el.addEventListener('click', fecharSheet));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && addSheet && !addSheet.hidden) fecharSheet();
+  });
+  window.fecharSheetNovoItem = fecharSheet;
+
+  // O botao de tema da barra superior faz o mesmo que o da sidebar.
+  $('#themeToggleTop')?.addEventListener('click', toggleTheme);
+
+  // Os graficos vinham com as cores padrao do Chart.js, que destoavam do app.
+  // Aqui eles passam a ler a paleta e a fonte do tema atual.
+  function aplicarTemaGraficos(){
+    if (!window.Chart) return;
+    const css = getComputedStyle(document.documentElement);
+    const tok = n => css.getPropertyValue(n).trim();
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = tok('--ink-3');
+    Chart.defaults.borderColor = tok('--line');
+    Chart.defaults.plugins.legend.labels.color = tok('--ink-2');
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.boxHeight = 10;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = tok('--s2');
+    Chart.defaults.plugins.tooltip.titleColor = tok('--ink');
+    Chart.defaults.plugins.tooltip.bodyColor = tok('--ink-2');
+    Chart.defaults.plugins.tooltip.borderColor = tok('--line-strong');
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    Chart.defaults.plugins.tooltip.displayColors = false;
+    // Paleta usada quando o grafico nao define cor propria.
+    const paleta = [tok('--brand'), tok('--info'), '#f59e0b', '#a855f7', '#ec4899', '#14b8a6'];
+    Chart.defaults.datasets.bar.backgroundColor = paleta[0];
+    Chart.defaults.datasets.bar.borderRadius = 8;
+    Chart.defaults.datasets.bar.borderSkipped = false;
+    Chart.defaults.datasets.bar.maxBarThickness = 46;
+    Chart.defaults.datasets.line.borderColor = paleta[0];
+    Chart.defaults.datasets.line.backgroundColor = tok('--brand-soft');
+    Chart.defaults.datasets.line.pointBackgroundColor = paleta[0];
+    Chart.defaults.datasets.line.pointRadius = 3;
+    Chart.defaults.datasets.line.fill = true;
+    Chart.defaults.datasets.doughnut.backgroundColor = paleta;
+    Chart.defaults.datasets.doughnut.borderColor = tok('--s1');
+    Chart.defaults.datasets.doughnut.borderWidth = 2;
+    Chart.defaults.scale.grid.color = tok('--line');
+    Chart.defaults.scale.grid.drawTicks = false;
+    Chart.defaults.scale.border.display = false;
+    Chart.defaults.scale.ticks.padding = 6;
+  }
+  aplicarTemaGraficos();
+  window.aplicarTemaGraficos = aplicarTemaGraficos;
+
+
   setTab('lista');
 
     // Sidebar mobile
@@ -406,8 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Adicionar evento de adicionar
       card.querySelector('.save-btn').onclick = ()=> upsertItem({ name:rawName, category: meta.lastCategory||'Outros', unit: meta.lastUnit||'un', qty: 1, price: meta.lastPrice||0 });
       // Evento de remover sugestão
-      card.querySelector('.remove-btn').onclick = ()=> {
-        if(confirm('Remover sugestão?')) {
+      card.querySelector('.remove-btn').onclick = async ()=> {
+        if (await uiConfirm('Remover sugestão?', { okLabel: 'Remover', danger: true })) {
           delete suggestions[rawName];
           save();
           renderQuickChips();
@@ -433,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const newUnit = card.querySelector('#editUnit').value.trim();
           const newCat = card.querySelector('#editCategory').value.trim();
           const newPrice = Number(card.querySelector('#editPrice').value);
-          if(!newName) return alert('Nome obrigatório');
+          if(!newName) return toast('Nome obrigatório', 'error');
           // Atualiza sugestão
           delete suggestions[rawName];
           suggestions[newName] = { lastUnit: newUnit, lastCategory: newCat, lastPrice: newPrice };
@@ -555,6 +766,8 @@ function upsertItem(partial){
     if(!last || last.price !== price || !sameDay(last.at)){ arr.push({ at: now, price }); }
   }
 
+  // Itens com os campos de edicao abertos (por nome, que sobrevive ao re-render).
+  const expandidos = new Set();
   function render(){
   const sortSel = $('#sort'); const sort = sortSel ? sortSel.value : 'recent';
     const catSel = $('#categoryFilter');
@@ -618,79 +831,96 @@ function upsertItem(partial){
     }, 0);
     let realizado = 0;
 
-    // Renderizar não comprados
-    notDone.forEach((it)=>{
-      const idx = items.indexOf(it);
+    // Markup de um item da lista. Um bloco so para comprados e nao comprados
+    // (antes eram dois quase iguais, com o botao de remover duplicado).
+    // A linha fica compacta e os campos de edicao aparecem ao expandir, para
+    // caber mais itens na tela.
+    const UNIDADES = ['un','kg','g','L','ml','pct'];
+    const CATEGORIAS = ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'];
+    const num = v => typeof v === 'string' ? Number(v.replace(',', '.')) || 0 : Number(v) || 0;
+    const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const opcoes = (lista, atual) => lista
+      .map(v => '<option' + (v === atual ? ' selected' : '') + '>' + v + '</option>').join('');
+
+    function itemCard(it, idx) {
+      const subtotal = num(it.qty) * num(it.price);
+      const aberto = expandidos.has(it.name);
+      const resumo = num(it.qty) + ' ' + (it.unit || 'un') +
+        (num(it.price) ? ' × ' + money(num(it.price)) : '');
+
       const card = document.createElement('div');
-      card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px]';
+      card.className = 'item-row' + (it.done ? ' is-done' : '') + (aberto ? ' is-open' : '');
       card.innerHTML =
-        '<div class="flex items-start justify-between gap-2">'
-        + '<div class="flex items-center gap-1 flex-1 min-w-0">'
-        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
-        + '<input type="checkbox" data-i="'+idx+'" data-act="toggle" '+(it.done?'checked':'')+' class="accent-emerald-500 w-4 h-4 flex-shrink-0">'
-        + '<span class="item-name flex-1 text-sm word-break-all '+(it.done?'line-through opacity-80 text-emerald-600 selected-item':'')+'" style="font-weight:bold; cursor:pointer;" data-i="'+idx+'" data-act="toggleByName">'+(it.name||'Item sem nome')+'</span>'
+        '<label class="item-check">'
+        +   '<input type="checkbox" data-i="' + idx + '" data-act="toggle"' + (it.done ? ' checked' : '') + '>'
+        +   '<span class="check-mark" aria-hidden="true"></span>'
+        + '</label>'
+        + '<div class="item-main">'
+        +   '<span class="item-name" data-i="' + idx + '" data-act="toggleByName">' + esc(it.name || 'Item sem nome') + '</span>'
+        +   '<span class="item-summary">' + esc(resumo) + '</span>'
         + '</div>'
-        + '<div class="item-actions">'
-        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
-        + '</div>'
-        + '</div>'
-  + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
-  +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Quantidade</span> <input type="text" pattern="[0-9.,]*" inputmode="decimal" placeholder="Quantidade" autocomplete="off" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Preço</span> <input type="text" pattern="[0-9.,]*" inputmode="decimal" placeholder="Preço" autocomplete="off" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
-  +   '</div>'
-  +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Unidade</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
-  ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
-  '  </select></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Categoria</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
-  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
-  '  </select></span>'
-  +   '</div>'
-  + '</div>';
-      listEl.appendChild(card);
+        + '<span class="item-subtotal">' + money(subtotal) + '</span>'
+        + '<button class="item-expand" data-expand="' + esc(it.name) + '" aria-expanded="' + aberto + '" aria-label="Editar ' + esc(it.name || 'item') + '">'
+        +   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+        + '</button>'
+        + '<div class="item-edit">'
+        +   '<div class="item-fields">'
+        +     '<span class="field"><span class="field-label">Qtd</span>'
+        +       '<input type="text" pattern="[0-9.,]*" inputmode="decimal" autocomplete="off" value="' + esc(it.qty) + '" data-i="' + idx + '" data-f="qty"></span>'
+        +     '<span class="field"><span class="field-label">Preço</span>'
+        +       '<input type="text" pattern="[0-9.,]*" inputmode="decimal" autocomplete="off" value="' + esc(it.price) + '" data-i="' + idx + '" data-f="price"></span>'
+        +     '<span class="field"><span class="field-label">Un</span>'
+        +       '<select data-i="' + idx + '" data-f="unit">' + opcoes(UNIDADES, it.unit || 'un') + '</select></span>'
+        +     '<span class="field field-cat"><span class="field-label">Categoria</span>'
+        +       '<select data-i="' + idx + '" data-f="category">' + opcoes(CATEGORIAS, it.category || 'Outros') + '</select></span>'
+        +   '</div>'
+        +   '<button data-del="' + idx + '" class="item-del" aria-label="Remover ' + esc(it.name || 'item') + '">'
+        +     '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        +     '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg><span>Remover</span>'
+        +   '</button>'
+        + '</div>';
+      return card;
+    }
+
+    notDone.forEach(it => listEl.appendChild(itemCard(it, items.indexOf(it))));
+    done.forEach(it => {
+      realizado += num(it.qty) * num(it.price);
+      listEl.appendChild(itemCard(it, items.indexOf(it)));
     });
 
-    // Renderizar comprados
-    done.forEach((it)=>{
-  const idx = items.indexOf(it);
-  // Garante que preço e quantidade com vírgula sejam convertidos corretamente
-  let qty = typeof it.qty === 'string' ? Number(it.qty.replace(',', '.')) : Number(it.qty);
-  let price = typeof it.price === 'string' ? Number(it.price.replace(',', '.')) : Number(it.price);
-  const subtotal = (qty||0)*(price||0);
-  realizado+=subtotal;
-      const card = document.createElement('div');
-      card.className = 'shopping-card rounded-lg p-3 flex flex-col gap-2 shadow-sm border min-h-[80px] opacity-70';
-      card.innerHTML =
-        '<div class="flex items-start justify-between gap-2">'
-        + '<div class="flex items-center gap-1 flex-1 min-w-0">'
-        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
-        + '<input type="checkbox" data-i="'+idx+'" data-act="toggle" '+(it.done?'checked':'')+' class="accent-emerald-500 w-4 h-4 flex-shrink-0">'
-        + '<span class="item-name flex-1 text-sm word-break-all '+(it.done?'line-through opacity-80 text-emerald-600 selected-item':'')+'" style="font-weight:bold; cursor:pointer;" data-i="'+idx+'" data-act="toggleByName">'+(it.name||'Item sem nome')+'</span>'
-        + '</div>'
-        + '<div class="item-actions">'
-        + '<button data-del="'+idx+'" class="delete-btn ml-1 p-0.5 w-7 h-7 flex items-center justify-center rounded-full bg-rose-500 hover:bg-rose-600 text-white transition-colors text-xs flex-shrink-0" title="Remover" style="min-width:24px;min-height:24px;max-width:24px;max-height:24px;">🗑️</button>'
-        + '</div>'
-        + '</div>'
-  + '<div class="item-info-compact text-xs flex flex-col gap-1 items-center w-full">'
-  +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Qtd:</span> <input type="number" min="0.01" step="0.01" value="'+it.qty+'" data-i="'+idx+'" data-f="qty" class="w-12 text-xs ml-1 text-center" /></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Preço:</span> <input type="number" step="0.01" min="0" value="'+it.price+'" data-i="'+idx+'" data-f="price" class="w-14 text-xs ml-1 text-center" /></span>'
-  +   '</div>'
-  +   '<div class="flex flex-row gap-4 w-full justify-center">'
-  +     '<span class="flex flex-col items-center"><span class="label">Un.:</span> <select data-i="'+idx+'" data-f="unit" class="text-xs w-12 ml-1 text-center">'+
-  ['un','kg','g','L','ml','pct'].map(u=>'<option '+(u===(it.unit||'un')?'selected':'')+'>'+u+'</option>').join('')+
-  '  </select></span>'
-  +     '<span class="flex flex-col items-center"><span class="label">Cat.:</span> <select data-i="'+idx+'" data-f="category" class="text-xs w-20 ml-1 text-center">'+
-  ['Mercearia','Laticínios','Hortifruti','Limpeza','Higiene','Bebidas','Carnes','Cereais','Outros'].map(c=>'<option '+(c===(it.category||'Outros')?'selected':'')+'>'+c+'</option>').join('')+
-  '  </select></span>'
-  +   '</div>'
-  + '</div>';
-      listEl.appendChild(card);
+    // Sem itens a área ficava simplesmente em branco.
+    if (!notDone.length && !done.length) {
+      const vazio = document.createElement('div');
+      vazio.className = 'empty-state';
+      vazio.innerHTML =
+        '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+        + '<path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/>'
+        + '<circle cx="9.5" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/></svg>'
+        + '<p class="empty-title">' + (catFilter ? 'Nada em "' + catFilter + '"' : 'Sua lista está vazia') + '</p>'
+        + '<p class="empty-hint">' + (catFilter ? 'Troque o filtro para ver os outros itens.' : 'Toque no botão + para adicionar, ou use uma lista pronta em Sugestões.') + '</p>';
+      listEl.appendChild(vazio);
+    }
+
+    // O estado aberto vive fora do render, que recria a lista inteira.
+    listEl.querySelectorAll('[data-expand]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const nome = btn.getAttribute('data-expand');
+        if (expandidos.has(nome)) expandidos.delete(nome); else expandidos.add(nome);
+        const linha = btn.closest('.item-row');
+        linha.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', String(linha.classList.contains('is-open')));
+      });
     });
 
   // Atualiza contador para mostrar quantos itens estão sendo exibidos
   $('#count') && ($('#count').textContent = (notDone.length + done.length) + ' itens' + (catFilter ? ' ('+catFilter+')' : ''));
+    // Progresso da compra no painel de resumo.
+    const totalItens = items.length;
+    const feitos = items.filter(i => i.done).length;
+    const pct = totalItens ? Math.round((feitos / totalItens) * 100) : 0;
+    $('#heroBarFill') && ($('#heroBarFill').style.width = pct + '%');
+    $('#heroCount') && ($('#heroCount').textContent =
+      totalItens ? feitos + ' de ' + totalItens + (totalItens === 1 ? ' item' : ' itens') : 'Nenhum item ainda');
     $('#progress') && ($('#progress').textContent = '');
     $('#kpiPrevisto') && ($('#kpiPrevisto').textContent = money(previsto));
     $('#kpiRealizado') && ($('#kpiRealizado').textContent = money(realizado));
@@ -755,12 +985,13 @@ function upsertItem(partial){
     }
   });
   listEl.addEventListener('click', (e)=>{
-    const del = e.target.getAttribute('data-del');
-    if(del!=null){ items.splice(Number(del),1); save(); render(); return; }
-    const act = e.target.getAttribute('data-act');
+    const btnDel = e.target.closest('[data-del]');
+    if(btnDel){ items.splice(Number(btnDel.getAttribute('data-del')),1); save(); render(); return; }
+    const alvo = e.target.closest('[data-act]');
+    const act = alvo && alvo.getAttribute('data-act');
     if(act==='toggleByName'){
       // Clique no nome do item: marcar como selecionado
-      const i = Number(e.target.getAttribute('data-i'));
+      const i = Number(alvo.getAttribute('data-i'));
       if(!Number.isFinite(i)) return;
       items[i].done = !items[i].done;
       save(); render(); return;
@@ -829,19 +1060,19 @@ function upsertItem(partial){
       price: parseFloat($('#price')?.value?.replace(',','.')) || 0
     };
     
-    if(!it.name){ playSound('error'); alert('Dê um nome ao item.'); $('#name')?.focus(); return; }
-    if(!categoryValue){ playSound('error'); alert('Selecione uma categoria para o item.'); $('#category')?.focus(); return; }
+    if(!it.name){ playSound('error'); toast('Dê um nome ao item.', 'error'); $('#name')?.focus(); return; }
+    if(!categoryValue){ playSound('error'); toast('Selecione uma categoria para o item.', 'error'); $('#category')?.focus(); return; }
     
     // Verificar se a categoria sugerida é diferente da selecionada
     const suggestedCat = suggestCategory(productName);
     if (suggestedCat && suggestedCat !== categoryValue) {
       const confirmMsg = `🤔 Detectamos que "${productName}" normalmente pertence à categoria "${suggestedCat}"\n\nVocê selecionou: ${categoryValue}\nSugerimos: ${suggestedCat}\n\nDeseja usar a categoria sugerida?`;
-      if (confirm(confirmMsg)) {
+      if (await uiConfirm(confirmMsg, { okLabel: 'Usar sugerida' })) {
         it.category = suggestedCat;
       }
     }
     
-    upsertItem(it); addForm.reset(); $('#qty') && ($('#qty').value=1); $('#unit') && ($('#unit').value='un'); $('#category') && ($('#category').selectedIndex=0); $('#name')?.focus();
+    upsertItem(it); window.fecharSheetNovoItem && window.fecharSheetNovoItem(); addForm.reset(); $('#qty') && ($('#qty').value=1); $('#unit') && ($('#unit').value='un'); $('#category') && ($('#category').selectedIndex=0); $('#name')?.focus();
     playSound('success');
   });
 
@@ -851,7 +1082,7 @@ function upsertItem(partial){
     const arr = JSON.parse(btn.getAttribute('data-template') || '[]');
     arr.forEach(it=> upsertItem(it));
     playSound('success');
-    alert('Lista adicionada à sua lista atual!');
+    toast('Lista adicionada à sua lista atual!', 'success');
   }));
 
   // Botões de editar templates
@@ -971,11 +1202,11 @@ function upsertItem(partial){
     addBtn.onclick = () => {
       const validItems = tempItems.filter(it => it.name && it.qty > 0);
       if(validItems.length === 0) {
-        alert('Adicione pelo menos um item válido!');
+        toast('Adicione pelo menos um item válido!', 'error');
         return;
       }
       validItems.forEach(it=> upsertItem(it));
-      alert(`${validItems.length} ite${validItems.length > 1 ? 'ns adicionados' : 'm adicionado'} à sua lista!`);
+      toast(`${validItems.length} ite${validItems.length > 1 ? 'ns adicionados' : 'm adicionado'} à sua lista!`, 'success');
       modal.remove();
     };
 
@@ -1002,7 +1233,7 @@ function upsertItem(partial){
     if(navigator.clipboard?.writeText){
       navigator.clipboard.writeText(text).then(()=>{
         playSound('success');
-        alert('Lista copiada!');
+        toast('Lista copiada!', 'success');
       }).catch(()=>{
         playSound('error');
         fallbackCopy(text);
@@ -1012,7 +1243,7 @@ function upsertItem(partial){
       fallbackCopy(text);
     }
   });
-  function fallbackCopy(text){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('Lista copiada!'); }
+  function fallbackCopy(text){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Lista copiada!', 'success'); }
 
   // Compressão LZString simplificada para encurtar URLs
   const LZString={compressToEncodedURIComponent:function(e){if(null==e)return"";return this._compress(e,6,function(e){return"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".charAt(e)})},decompressFromEncodedURIComponent:function(e){return null==e?"":""==e?null:(e=e.replace(/ /g,"+"),this._decompress(e.length,32,function(t){return"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".indexOf(e.charAt(t))}))},_compress:function(e,t,n){if(null==e)return"";var r,i,o,a={},s={},c="",l="",u="",p=2,f=3,d=2,h=[],m=0,g=0;for(o=0;o<e.length;o+=1)if(c=e.charAt(o),Object.prototype.hasOwnProperty.call(a,c)||(a[c]=f++,s[c]=!0),l=u+c,Object.prototype.hasOwnProperty.call(a,l))u=l;else{if(Object.prototype.hasOwnProperty.call(s,u)){if(u.charCodeAt(0)<256){for(r=0;r<d;r++)m<<=1,g==t-1?(g=0,h.push(n(m)),m=0):g++;for(i=u.charCodeAt(0),r=0;r<8;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1}else{for(i=1,r=0;r<d;r++)m=m<<1|i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i=0;for(i=u.charCodeAt(0),r=0;r<16;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1}0==--p&&(p=Math.pow(2,d),d++),delete s[u]}else for(i=a[u],r=0;r<d;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1;0==--p&&(p=Math.pow(2,d),d++),a[l]=f++,u=String(c)}if(""!==u){if(Object.prototype.hasOwnProperty.call(s,u)){if(u.charCodeAt(0)<256){for(r=0;r<d;r++)m<<=1,g==t-1?(g=0,h.push(n(m)),m=0):g++;for(i=u.charCodeAt(0),r=0;r<8;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1}else{for(i=1,r=0;r<d;r++)m=m<<1|i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i=0;for(i=u.charCodeAt(0),r=0;r<16;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1}0==--p&&(p=Math.pow(2,d),d++),delete s[u]}else for(i=a[u],r=0;r<d;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1;0==--p&&(p=Math.pow(2,d),d++)}for(i=2,r=0;r<d;r++)m=m<<1|1&i,g==t-1?(g=0,h.push(n(m)),m=0):g++,i>>=1;for(;;){if(m<<=1,g==t-1){h.push(n(m));break}g++}return h.join("")},_decompress:function(e,t,n){var r,i,o,a,s,c,l,u=[],p=4,f=4,d=3,h="",m=[],g={val:n(0),position:t,index:1};for(r=0;r<3;r+=1)u[r]=r;for(o=0,s=Math.pow(2,2),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;switch(o){case 0:for(o=0,s=Math.pow(2,8),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;l=String.fromCharCode(o);break;case 1:for(o=0,s=Math.pow(2,16),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;l=String.fromCharCode(o);break;case 2:return""}for(u[3]=l,i=l,m.push(l);;){if(g.index>e)return"";for(o=0,s=Math.pow(2,d),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;switch(l=o){case 0:for(o=0,s=Math.pow(2,8),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;u[f++]=String.fromCharCode(o),l=f-1,p--;break;case 1:for(o=0,s=Math.pow(2,16),c=1;c!=s;)a=g.val&g.position,g.position>>=1,0==g.position&&(g.position=t,g.val=n(g.index++)),o|=(a>0?1:0)*c,c<<=1;u[f++]=String.fromCharCode(o),l=f-1,p--;break;case 2:return m.join("")}if(0==p&&(p=Math.pow(2,d),d++),u[l])h=u[l];else{if(l!==f)return null;h=i+i.charAt(0)}m.push(h),u[f++]=i+h.charAt(0),i=h,0==--p&&(p=Math.pow(2,d),d++)}}};
@@ -1022,7 +1253,7 @@ function upsertItem(partial){
     playSound('click');
     if(!items.length) {
       playSound('error');
-      return alert('Sua lista está vazia.');
+      return toast('Sua lista está vazia.', 'error');
     }
     // Reduz dados ao mínimo necessário para compartilhamento
     const minimalData = items.map(i => ({
@@ -1043,13 +1274,13 @@ function upsertItem(partial){
         playSound('success');
       } catch (e) { 
         playSound('error');
-        alert('Não foi possível compartilhar: ' + e.message); 
+        toast('Não foi possível compartilhar: ' + e.message, 'error'); 
       }
     } else {
       if(navigator.clipboard?.writeText){
         await navigator.clipboard.writeText(texto);
         playSound('success');
-        alert('Link da lista copiado!');
+        toast('Link da lista copiado!', 'success');
       } else {
         playSound('success');
         fallbackCopy(texto);
@@ -1058,19 +1289,19 @@ function upsertItem(partial){
   });
 
   // Finalizar compra
-  $('#finalizar')?.addEventListener('click', ()=>{
+  $('#finalizar')?.addEventListener('click', async ()=>{
     playSound('click');
     if(!items.length) {
       playSound('error');
-      return alert('Sua lista está vazia.');
+      return toast('Sua lista está vazia.', 'error');
     }
     // Se não houver nenhum item marcado como comprado, não faz nada
     const comprados = items.filter(i => !!i.done);
     if (!comprados.length) {
       playSound('error');
-      return alert('Marque os itens comprados para finalizar a compra.');
+      return toast('Marque os itens comprados para finalizar a compra.', 'error');
     }
-    const nome = prompt('Deseja dar um nome para este histórico? (opcional)','');
+    const nome = await uiPrompt('Quer dar um nome a esta compra? (opcional)', '');
     // Pega o valor do campo de mercado
     let mercado = '';
     const marketInput = document.getElementById('market');
@@ -1084,7 +1315,7 @@ function upsertItem(partial){
     items = items.filter(i => !i.done);
     save(); render(); renderReports(); renderHistorico(); 
     playSound('success');
-    alert('Compra finalizada! Apenas os itens marcados foram considerados comprados. Os demais permanecem na lista.');
+    toast('Compra finalizada! Os itens não marcados continuam na lista.', 'success', 4200);
   });
 
   // ===== Insights =====
@@ -1154,28 +1385,33 @@ function upsertItem(partial){
     renderMarketComparison(); renderRankingVar();
 
     // Comparação automática do supermercado mais barato
-    const cheapestBox = document.getElementById('cheapestMarketBox');
-    if (cheapestBox) {
-      let marketTotals = {};
-      // Soma todos os preços mais recentes de cada item por mercado
-      Object.keys(priceHistory).forEach(itemName => {
-        const markets = priceHistory[itemName];
-        Object.keys(markets).forEach(market => {
-          const arr = markets[market];
-          if (arr && arr.length) {
-            const last = arr[arr.length-1];
-            marketTotals[market] = (marketTotals[market]||0) + (last.price||0);
-          }
-        });
-      });
-      let cheapest = null;
-      let cheapestValue = null;
-      Object.entries(marketTotals).forEach(([market, total]) => {
-        if (cheapestValue === null || total < cheapestValue) {
-          cheapest = market;
-          cheapestValue = total;
+    // Soma todos os preços mais recentes de cada item por mercado. Calculado uma
+    // única vez porque o gráfico e a lista de produtos abaixo usam os mesmos totais.
+    const marketTotals = {};
+    const marketProducts = {};
+    Object.keys(priceHistory).forEach(itemName => {
+      const markets = priceHistory[itemName];
+      Object.keys(markets).forEach(market => {
+        const arr = markets[market];
+        if (arr && arr.length) {
+          const last = arr[arr.length-1];
+          marketTotals[market] = (marketTotals[market]||0) + (last.price||0);
+          if (!marketProducts[market]) marketProducts[market] = [];
+          marketProducts[market].push({ name: itemName, price: last.price });
         }
       });
+    });
+    let cheapest = null;
+    let cheapestValue = null;
+    Object.entries(marketTotals).forEach(([market, total]) => {
+      if (cheapestValue === null || total < cheapestValue) {
+        cheapest = market;
+        cheapestValue = total;
+      }
+    });
+
+    const cheapestBox = document.getElementById('cheapestMarketBox');
+    if (cheapestBox) {
       if (cheapest) {
         cheapestBox.innerHTML = `<div class="p-3 rounded-lg bg-emerald-900/60 text-emerald-200 flex items-center gap-2"><span class="font-bold">Supermercado mais barato:</span> <span class="font-semibold">${cheapest}</span> <span class="ml-2 text-xs">(total estimado: <b>${money(cheapestValue)}</b>)</span></div>`;
       } else {
@@ -1184,27 +1420,17 @@ function upsertItem(partial){
     }
       const chartMarketsTotalCanvas = document.getElementById('chartMarketsTotal');
       const cheapestProductsBox = document.getElementById('cheapestProductsBox');
-      let marketProducts = {};
-      // Soma todos os preços mais recentes de cada item por mercado
-      Object.keys(priceHistory).forEach(itemName => {
-        const markets = priceHistory[itemName];
-        Object.keys(markets).forEach(market => {
-          const arr = markets[market];
-          if (arr && arr.length) {
-            const last = arr[arr.length-1];
-            marketTotals[market] = (marketTotals[market]||0) + (last.price||0);
-            if (!marketProducts[market]) marketProducts[market] = [];
-            marketProducts[market].push({ name: itemName, price: last.price });
-          }
-        });
-      });
       // Gráfico de barras dos mercados
       if (chartMarketsTotalCanvas) {
-        if (window.chartMarketsTotal) window.chartMarketsTotal.destroy();
+        if (window.__chartMarketsTotal) window.__chartMarketsTotal.destroy();
         const labels = Object.keys(marketTotals);
         const data = Object.values(marketTotals);
-        const bgColors = labels.map(m => m === cheapest ? 'rgba(16,185,129,0.7)' : 'rgba(59,130,246,0.5)');
-        window.chartMarketsTotal = new Chart(chartMarketsTotalCanvas, {
+        const css = getComputedStyle(document.documentElement);
+        const corBarato = css.getPropertyValue('--brand').trim();
+        const corOutros = css.getPropertyValue('--ink-3').trim();
+        // Destaque só para o mercado mais barato; os demais ficam neutros.
+        const bgColors = labels.map(m => m === cheapest ? corBarato : corOutros);
+        window.__chartMarketsTotal = new Chart(chartMarketsTotalCanvas, {
           type: 'bar',
           data: { labels, datasets: [{ label: 'Total estimado', data, backgroundColor: bgColors }] },
           options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
@@ -1239,7 +1465,7 @@ function upsertItem(partial){
   // ===== Mercado =====
   const marketInput = $('#market'); const saveMarketBtn = $('#saveMarket');
   if(marketInput) marketInput.value = currentMarket || '';
-  saveMarketBtn?.addEventListener('click', ()=>{ currentMarket = (marketInput.value||'').trim(); save(); alert('Mercado salvo: '+(currentMarket||'—')); });
+  saveMarketBtn?.addEventListener('click', ()=>{ currentMarket = (marketInput.value||'').trim(); save(); toast('Mercado salvo: '+(currentMarket||'—'), 'success'); });
 
   // ===== User Lists =====
   function renderUserLists(){
@@ -1263,10 +1489,10 @@ function upsertItem(partial){
     });
     // Eventos para carregar/remover/editar listas salvas
     box.querySelectorAll('[data-load]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const idx = Number(btn.getAttribute('data-load'));
         if (!Number.isFinite(idx) || !userLists[idx]) return;
-        if (!confirm('Substituir a lista atual pela lista salva?')) return;
+        if (!await uiConfirm('Substituir a lista atual pela lista salva?', { okLabel: 'Substituir' })) return;
         items = userLists[idx].items.map(i => Object.assign({}, i));
         save(); render();
         setTab('lista');
@@ -1357,10 +1583,10 @@ function upsertItem(partial){
       });
     });
     box.querySelectorAll('[data-remove]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const idx = Number(btn.getAttribute('data-remove'));
         if (!Number.isFinite(idx) || !userLists[idx]) return;
-        if (!confirm('Remover esta lista salva?')) return;
+        if (!await uiConfirm('Remover esta lista salva?', { okLabel: 'Remover', danger: true })) return;
         userLists.splice(idx, 1);
         save(); renderUserLists();
       });
@@ -1394,7 +1620,7 @@ function upsertItem(partial){
             </div>
             ${p.brand ? `<div class='product-brand'>${p.brand}</div>` : ''}
           </div>
-          <button class='delete-product' data-idx='${idx}' title='Remover'>🗑️</button>
+          <button class='delete-product' data-idx='${idx}' title='Remover' aria-label='Remover produto'><svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/></svg></button>
         </div>
         <div class='product-details'>
           <span><span class='label'>Categoria:</span> <strong>${p.category}</strong></span>
@@ -1424,10 +1650,10 @@ function upsertItem(partial){
     
     // Eventos de remover
     list.querySelectorAll('.delete-product').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         playSound('click');
         const idx = Number(btn.getAttribute('data-idx'));
-        if(confirm('Remover este produto cadastrado?')){
+        if (await uiConfirm('Remover este produto cadastrado?', { okLabel: 'Remover', danger: true })) {
           customProducts.splice(idx, 1);
           save();
           renderProducts();
@@ -1467,7 +1693,7 @@ function upsertItem(partial){
   
   // Form de adicionar produto
   const addProductForm = $('#addProductForm');
-  addProductForm?.addEventListener('submit', (e) => {
+  addProductForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     playSound('click');
     const name = $('#productName')?.value?.trim();
@@ -1478,14 +1704,14 @@ function upsertItem(partial){
     
     if(!name){
       playSound('error');
-      alert('Digite o nome do produto.');
+      toast('Digite o nome do produto.', 'error');
       $('#productName')?.focus();
       return;
     }
     
     if(!category){
       playSound('error');
-      alert('Selecione uma categoria.');
+      toast('Selecione uma categoria.', 'error');
       $('#productCategory')?.focus();
       return;
     }
@@ -1493,7 +1719,7 @@ function upsertItem(partial){
     // Verificar se já existe
     const exists = customProducts.find(p => p.name.toLowerCase() === name.toLowerCase());
     if(exists){
-      if(!confirm('Já existe um produto com este nome. Deseja substituir?')) {
+      if (!await uiConfirm('Já existe um produto com este nome. Deseja substituir?', { okLabel: 'Substituir' })) {
         playSound('error');
         return;
       }
@@ -1518,7 +1744,7 @@ function upsertItem(partial){
     $('#productName')?.focus();
     
     playSound('success');
-    alert('✅ Produto "' + name + '" cadastrado com sucesso!');
+    toast('Produto "' + name + '" cadastrado com sucesso!', 'success');
   });
 
   // ===== Inicialização =====
@@ -1557,7 +1783,7 @@ function upsertItem(partial){
           +'</div>';
         setTimeout(()=>{
           if (allSugs.length === 0) {
-            box.innerHTML = '<span class="muted">Nenhuma sugestão de compra baseada no seu histórico.</span>';
+            box.innerHTML = '';
             return;
           }
           box.innerHTML = '<b>🔮 Lendo sua mente com base no seu padrão de compras...</b><br>' +
@@ -1588,7 +1814,7 @@ function upsertItem(partial){
       // Unir sugestões
       const allSugs = [...new Set([...top.map(x=>x[0]), ...comboTop.map(x=>x[0])])].filter(n=>n);
       if (allSugs.length === 0) {
-        box.innerHTML = '<span class="muted">Nenhuma sugestão de compra baseada no seu histórico.</span>';
+        box.innerHTML = '';
         return;
       }
       box.innerHTML = '<b>💡 Sugestões para você (baseado no seu histórico):</b><br>' +
