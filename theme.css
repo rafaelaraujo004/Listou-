@@ -1,0 +1,1231 @@
+/* ============================================================
+   Listou — camada de design
+   Carregada depois de styles.css, sobrescreve o visual legado.
+   ============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+:root, [data-theme="light"] {
+  --s0: #f5f7fb;   /* fundo da tela   */
+  --s1: #ffffff;   /* cartão          */
+  --s2: #f0f3f9;   /* cartão elevado  */
+  --s3: #e9edf5;   /* campo / chip    */
+  --line: rgba(15, 23, 42, 0.09);
+  --line-strong: rgba(15, 23, 42, 0.16);
+
+  --ink: #0d1526;
+  --ink-2: #55617a;
+  --ink-3: #8d99b0;
+
+  --brand: #00875a;
+  --brand-2: #00a86b;
+  --brand-ink: #007a52;
+  --brand-soft: rgba(0, 135, 90, 0.10);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.10);
+  --danger: #d92d20;
+  --danger-soft: rgba(217, 45, 32, 0.10);
+
+  --glow: rgba(0, 135, 90, 0.26);
+  --shadow-1: 0 1px 2px rgba(13, 21, 38, .05), 0 1px 3px rgba(13, 21, 38, .04);
+  --shadow-2: 0 6px 16px rgba(13, 21, 38, .07), 0 2px 6px rgba(13, 21, 38, .04);
+  --shadow-3: 0 20px 48px rgba(13, 21, 38, .14), 0 6px 16px rgba(13, 21, 38, .07);
+  --hero-grad: linear-gradient(135deg, #00875a 0%, #009c74 52%, #0b7fa8 100%);
+  --hero-ink: #ffffff;
+}
+
+[data-theme="dark"] {
+  --s0: #080d17;
+  --s1: #10182a;
+  --s2: #162035;
+  --s3: #1c2740;
+  --line: rgba(148, 170, 205, 0.12);
+  --line-strong: rgba(148, 170, 205, 0.22);
+
+  --ink: #eaf0fa;
+  --ink-2: #9fb0cb;
+  --ink-3: #6b7c98;
+
+  --brand: #22c993;
+  --brand-2: #3ddba8;
+  --brand-ink: #22c993;
+  --brand-soft: rgba(34, 201, 147, 0.14);
+  --info: #4d8dff;
+  --info-soft: rgba(77, 141, 255, 0.14);
+  --danger: #ff6470;
+  --danger-soft: rgba(255, 100, 112, 0.14);
+
+  --glow: rgba(34, 201, 147, 0.30);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .34);
+  --shadow-2: 0 8px 22px rgba(0, 0, 0, .40);
+  --shadow-3: 0 24px 56px rgba(0, 0, 0, .58);
+  --hero-grad: linear-gradient(135deg, #0d6b52 0%, #10897b 48%, #125f86 100%);
+  --hero-ink: #f2fbf8;
+}
+
+:root {
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* Ponte com styles.css, que pinta quase tudo via estes nomes. */
+:root, [data-theme="light"], [data-theme="dark"] {
+  --text: var(--ink);
+  --muted: var(--ink-2);
+  --card: var(--s1);
+  --ring: var(--line);
+  --surface: var(--s3);
+  --surface-strong: var(--s2);
+  --bg1: var(--s0);
+  --bg2: var(--s0);
+  --accent: var(--info);
+  --accent-light: var(--info-soft);
+}
+
+/* ---------- 2. Base ---------- */
+html, body { background: var(--s0) !important; }
+body {
+  color: var(--ink) !important;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+}
+body.sheet-open { overflow: hidden; }
+
+.hero-value, .kpi-value, .item-subtotal, .money,
+#kpiPrevisto, #kpiRealizado, #kpiTotal, #kpiTicket, #kpiDone {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+main { padding: 0 !important; }
+.tab-section { padding: 14px 14px 0 !important; }
+@media (min-width: 768px) {
+  main { padding: 0 !important; }
+  .tab-section { padding: 24px !important; max-width: 900px; margin: 0 auto; }
+}
+
+/* ---------- 3. Barra superior ---------- */
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+.brand { display: flex; align-items: center; gap: 9px; margin-right: auto; }
+.brand-mark {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+}
+.brand-name {
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: var(--ink) !important;
+}
+.icon-btn {
+  width: 38px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 !important;
+  min-height: 0 !important;
+  background: var(--s1) !important;
+  color: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-pill) !important;
+  box-shadow: var(--shadow-1) !important;
+  transition: background .16s, color .16s, transform .1s;
+}
+.icon-btn:hover { background: var(--s2) !important; color: var(--ink) !important; transform: none !important; }
+.icon-btn:active { transform: scale(.93) !important; }
+
+/* ---------- 4. Painel de resumo ---------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: var(--r-xl);
+  background: var(--hero-grad);
+  color: var(--hero-ink) !important;
+  box-shadow: var(--shadow-2), 0 14px 34px var(--glow);
+}
+/* Brilho suave no canto, para o painel não ficar chapado. */
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -55%; right: -22%;
+  width: 74%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.30), transparent 68%);
+  pointer-events: none;
+}
+.hero > * { position: relative; z-index: 1; }
+.hero-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.hero-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.78) !important;
+  white-space: nowrap;
+}
+.hero-value {
+  font-size: 36px !important;
+  font-weight: 800 !important;
+  line-height: 1.1;
+  color: var(--hero-ink) !important;
+  margin: 2px 0 12px;
+}
+.hero-bar {
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.22);
+  overflow: hidden;
+}
+.hero-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255,255,255,.6);
+  transition: width .5s var(--ease);
+}
+.hero-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: rgba(255,255,255,.85) !important;
+}
+.hero-foot b, .hero-done b {
+  color: #fff !important;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hero-count, .hero-done { color: rgba(255,255,255,.85) !important; }
+
+/* Campo do mercado, embutido no painel */
+.market-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 5px 6px 5px 10px;
+  max-width: 62%;
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.20);
+  color: #fff !important;
+}
+.market-field svg { flex: 0 0 auto; opacity: .9; }
+.market-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+}
+.market-field input::placeholder { color: rgba(255,255,255,.65) !important; }
+.market-field button {
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 !important;
+  min-height: 0 !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  background: rgba(255,255,255,.22) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.market-field button:hover { background: rgba(255,255,255,.34) !important; transform: none !important; }
+
+/* ---------- 5. Superfícies ---------- */
+.card, .kpi-card, .product-card, .suggestion-card {
+  background: var(--s1) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--shadow-1) !important;
+  padding: 14px !important;
+}
+
+/* ---------- 6. Botões ---------- */
+button {
+  border-radius: var(--r-md) !important;
+  font-weight: 650 !important;
+  font-family: inherit;
+  transition: background .16s, box-shadow .18s, transform .09s var(--ease), color .16s;
+}
+button:active { transform: scale(.975); }
+
+/* Primário: gradiente da marca com brilho próprio. */
+.btn-primary, button[type="submit"], button#finalizar, .finalize-btn,
+button.bg-blue-500, button.bg-blue-600, button.bg-blue-700 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 16px var(--glow), inset 0 1px 0 rgba(255,255,255,.22) !important;
+  letter-spacing: .005em;
+}
+.btn-primary:hover, button[type="submit"]:hover, button#finalizar:hover, .finalize-btn:hover {
+  box-shadow: 0 10px 24px var(--glow), inset 0 1px 0 rgba(255,255,255,.28) !important;
+  transform: translateY(-1px) !important;
+}
+.btn-primary:active, button[type="submit"]:active, .finalize-btn:active { transform: translateY(0) scale(.985) !important; }
+.btn-primary *, button[type="submit"] *, .finalize-btn * { color: #fff !important; }
+.btn-block { width: 100%; padding: 15px 18px !important; font-size: 15.5px !important; }
+
+/* Secundário: fundo discreto, sem competir com o primário. */
+.copy-list-btn, .share-list-btn, .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--s3) !important;
+  color: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+.copy-list-btn:hover, .share-list-btn:hover, .btn-ghost:hover {
+  background: var(--s2) !important;
+  color: var(--ink) !important;
+  border-color: var(--line-strong) !important;
+  transform: none !important;
+}
+
+/* ---------- 7. Botão flutuante ---------- */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  z-index: 880;
+  width: 60px; height: 60px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 !important;
+  min-height: 0 !important;
+  border: none !important;
+  border-radius: 21px !important;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand)) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 26px var(--glow), 0 3px 8px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.26) !important;
+  transition: transform .16s var(--ease), box-shadow .2s;
+}
+.fab:hover { transform: translateY(-2px) !important; box-shadow: 0 16px 34px var(--glow), inset 0 1px 0 rgba(255,255,255,.3) !important; }
+.fab:active { transform: scale(.93) !important; }
+@media (min-width: 768px) { .fab { bottom: 24px; right: 24px; } }
+
+/* ---------- 8. Folha de novo item ---------- */
+.sheet { position: fixed; inset: 0; z-index: 1200; }
+.sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(4, 8, 16, .58);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity .24s var(--ease);
+}
+.sheet.is-open .sheet-backdrop { opacity: 1; }
+.sheet-panel {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 8px 18px calc(20px + env(safe-area-inset-bottom));
+  background: var(--s1);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow-3);
+  transform: translateY(100%);
+  transition: transform .28s var(--ease);
+}
+.sheet.is-open .sheet-panel { transform: translateY(0); }
+.sheet-grip {
+  width: 40px; height: 4px;
+  margin: 6px auto 12px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sheet-head h3 { font-size: 18px !important; font-weight: 750 !important; letter-spacing: -0.02em; margin: 0; }
+@media (min-width: 768px) {
+  .sheet-panel {
+    left: 50%; right: auto; bottom: auto; top: 50%;
+    width: min(440px, 92vw);
+    transform: translate(-50%, -46%) scale(.97);
+    border-radius: var(--r-xl);
+    border: 1px solid var(--line);
+    opacity: 0;
+    transition: transform .24s var(--ease), opacity .24s;
+  }
+  .sheet.is-open .sheet-panel { transform: translate(-50%, -50%); opacity: 1; }
+  .sheet-grip { display: none; }
+}
+
+/* ---------- 9. Campos ---------- */
+.fld { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 0; }
+.fld > span {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-3) !important;
+}
+.fld-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.fld-sm { flex: 0 0 96px; }
+.fld-name { position: relative; margin-bottom: 12px; }
+.fld-name input { font-size: 16.5px !important; font-weight: 600 !important; padding: 15px 16px !important; }
+
+#addForm input:not([type="checkbox"]), #addForm select {
+  width: 100%;
+  background: var(--s3) !important;
+  color: var(--ink) !important;
+  border: 1.5px solid transparent !important;
+  border-radius: var(--r-md) !important;
+  padding: 13px 14px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  transition: border-color .16s, box-shadow .16s, background .16s;
+}
+#addForm input::placeholder { color: var(--ink-3) !important; font-weight: 500 !important; }
+#addForm input:focus, #addForm select:focus {
+  background: var(--s1) !important;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 4px var(--brand-soft) !important;
+  outline: none !important;
+}
+#suggestions {
+  position: absolute;
+  z-index: 20;
+  left: 0; right: 0;
+  margin-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--s1) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: var(--shadow-3) !important;
+  padding: 6px !important;
+}
+#suggestions button, #suggestions > div {
+  border-radius: var(--r-sm) !important;
+  padding: 10px 12px !important;
+  font-size: 14px !important;
+}
+
+/* Campos fora da folha (produtos, config) seguem o mesmo desenho. */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  background: var(--s3) !important;
+  color: var(--ink) !important;
+  border: 1.5px solid transparent !important;
+  border-radius: var(--r-md) !important;
+  font-size: 15px !important;
+}
+input:focus, select:focus, textarea:focus {
+  background: var(--s1) !important;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 4px var(--brand-soft) !important;
+  outline: none !important;
+}
+
+/* ---------- 10. Barra de ações da lista ---------- */
+.shopping-list-area { padding: 12px !important; }
+.list-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid var(--line);
+}
+.list-info-section, .list-controls-section { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.list-controls-section { margin-left: auto; }
+.item-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--brand-soft);
+  color: var(--brand-ink) !important;
+  font-size: 12.5px !important;
+  font-weight: 750 !important;
+  white-space: nowrap;
+}
+.filter-select, .sort-select {
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-sm) !important;
+  max-width: 150px;
+}
+.copy-list-btn, .share-list-btn, .finalize-btn {
+  padding: 9px 13px !important;
+  font-size: 13px !important;
+  border-radius: var(--r-sm) !important;
+  white-space: nowrap;
+}
+@media (max-width: 439px) {
+  .list-actions-bar { flex-wrap: wrap; }
+  .list-controls-section { width: 100%; margin-left: 0; }
+  .copy-list-btn .btn-text, .share-list-btn .btn-text { display: none; }
+  .finalize-btn { margin-left: auto; }
+}
+
+/* ---------- 11. Item da lista ---------- */
+#list { display: flex !important; flex-direction: column; gap: 8px !important; }
+
+.item-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  transition: background .2s, opacity .2s, box-shadow .2s;
+}
+.item-row:hover { box-shadow: var(--shadow-2); }
+.item-row.is-done { opacity: .55; background: var(--s2); box-shadow: none; }
+
+.item-check { position: relative; display: flex; width: 26px; height: 26px; cursor: pointer; }
+.item-check input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
+.check-mark {
+  width: 26px; height: 26px;
+  border: 2px solid var(--line-strong);
+  border-radius: 9px;
+  transition: background .18s var(--ease), border-color .18s, transform .12s;
+}
+.item-check input:checked + .check-mark {
+  background: linear-gradient(135deg, var(--brand-2), var(--brand));
+  border-color: transparent;
+  box-shadow: 0 3px 10px var(--glow);
+}
+.item-check input:checked + .check-mark::after {
+  content: '';
+  display: block;
+  width: 6px; height: 11px;
+  margin: 3px auto 0;
+  border: solid #fff;
+  border-width: 0 2.6px 2.6px 0;
+  transform: rotate(45deg);
+}
+.item-check input:active + .check-mark { transform: scale(.88); }
+.item-check input:focus-visible + .check-mark { outline: 2px solid var(--info); outline-offset: 3px; }
+
+.item-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.item-name {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  line-height: 1.25;
+  color: var(--ink) !important;
+  cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.is-done .item-name { text-decoration: line-through; color: var(--ink-2) !important; }
+.item-summary {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ink-3) !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.item-subtotal {
+  font-size: 15px !important;
+  font-weight: 750 !important;
+  color: var(--ink) !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.is-done .item-subtotal { color: var(--ink-3) !important; }
+
+.item-expand {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 !important; min-height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  color: var(--ink-3) !important;
+  box-shadow: none !important;
+}
+.item-expand svg { transition: transform .24s var(--ease); }
+.item-row.is-open .item-expand svg { transform: rotate(180deg); }
+.item-expand:hover { background: var(--s3) !important; color: var(--ink) !important; transform: none !important; }
+
+.item-edit {
+  grid-column: 1 / -1;
+  display: none;
+  flex-direction: column;
+  gap: 11px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.item-row.is-open .item-edit { display: flex; animation: item-open .2s var(--ease); }
+@keyframes item-open { from { opacity: 0; transform: translateY(-5px); } }
+
+.item-fields { display: flex; flex-wrap: wrap; gap: 7px; }
+.field {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  background: var(--s3);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-pill);
+  min-width: 0;
+  transition: border-color .16s, box-shadow .16s;
+}
+.field-label {
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-3) !important;
+  white-space: nowrap;
+}
+.field input, .field select {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: 0 !important; height: 28px !important;
+  font-size: 13.5px !important;
+  font-weight: 650 !important;
+  color: var(--ink) !important;
+}
+.field input { width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+.field select { max-width: 96px; }
+.field-cat { flex: 1 1 130px; }
+.field-cat select { width: 100%; max-width: none; }
+.field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.field input:focus, .field select:focus { background: transparent !important; border: none !important; box-shadow: none !important; }
+
+.item-del {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px;
+  padding: 0 14px !important;
+  min-height: 0 !important;
+  font-size: 13px !important;
+  background: var(--danger-soft) !important;
+  color: var(--danger) !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  box-shadow: none !important;
+}
+.item-del span { color: inherit !important; }
+.item-del:hover { background: var(--danger) !important; color: #fff !important; transform: none !important; }
+.item-del:hover span, .item-del:hover svg { color: #fff !important; }
+
+/* ---------- 12. Navegação inferior ---------- */
+#bottomNav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 900;
+  display: flex;
+  gap: 2px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--s1) 86%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-top: 1px solid var(--line);
+}
+@supports not (backdrop-filter: blur(1px)) { #bottomNav { background: var(--s1); } }
+
+.bnav-item {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 4px 2px !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--ink-3) !important;
+  box-shadow: none !important;
+  transition: color .2s;
+}
+.bnav-item svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.9; }
+.bnav-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 30px;
+  border-radius: var(--r-pill);
+  transition: background .24s var(--ease), transform .16s var(--ease);
+}
+.bnav-label {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  color: inherit !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.bnav-item[aria-selected="true"] { color: var(--brand-ink) !important; }
+.bnav-item[aria-selected="true"] .bnav-icon { background: var(--brand-soft); }
+.bnav-item[aria-selected="true"] svg { stroke-width: 2.3; }
+.bnav-item[aria-selected="true"] .bnav-label { font-weight: 750 !important; }
+.bnav-item:active .bnav-icon { transform: scale(.9); }
+
+@media (min-width: 768px) {
+  #bottomNav { display: none; }
+  body { padding-bottom: 0 !important; }
+}
+@media (max-width: 767px) { .hamburger-btn { display: none !important; } }
+
+#toastHost { bottom: calc(92px + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) { #toastHost { bottom: calc(1rem + env(safe-area-inset-bottom)); } }
+
+/* ---------- 13. Sidebar como drawer ---------- */
+@media (max-width: 767px) {
+  #sidebar {
+    position: fixed !important;
+    top: 0; bottom: 0; left: 0;
+    width: min(84vw, 320px) !important;
+    z-index: 1000;
+    overflow-y: auto;
+    background: var(--s1) !important;
+    border-right: 1px solid var(--line) !important;
+    box-shadow: var(--shadow-3);
+    padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(0);
+    transition: transform .28s var(--ease);
+  }
+  #sidebar.hidden { display: block !important; transform: translateX(-102%); pointer-events: none; }
+  body.sidebar-open::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(4, 8, 16, .55);
+    backdrop-filter: blur(2px);
+    animation: fade-in .2s ease-out;
+  }
+  #closeSidebar {
+    display: flex !important; align-items: center; justify-content: center;
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top)); right: 14px; left: auto !important;
+    width: 34px; height: 34px;
+    min-height: 0 !important;
+    border-radius: var(--r-pill) !important;
+    background: var(--s3) !important;
+    color: var(--ink-2) !important;
+    border: none !important;
+  }
+}
+
+button.tab-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--r-md) !important;
+  color: var(--ink-2) !important;
+  box-shadow: none !important;
+  font-weight: 650 !important;
+  font-size: 14px !important;
+}
+button.tab-btn:hover { background: var(--s3) !important; color: var(--ink) !important; transform: none !important; }
+button.tab-btn.tab-btn-active { background: var(--brand-soft) !important; color: var(--brand-ink) !important; }
+button.tab-btn.tab-btn-active * { color: var(--brand-ink) !important; }
+
+/* ---------- 14. Estados vazios ---------- */
+.empty-state, #historicoVazio, #productsEmpty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px;
+  padding: 40px 24px !important;
+  text-align: center;
+  color: var(--ink-3) !important;
+}
+.empty-state svg { color: var(--ink-3); opacity: .45; }
+.empty-title { font-size: 15.5px !important; font-weight: 700 !important; color: var(--ink-2) !important; margin: 0; }
+.empty-hint { font-size: 13px !important; color: var(--ink-3) !important; margin: 0; max-width: 32ch; line-height: 1.5; }
+
+/* ---------- 15. Títulos e cartões das outras abas ---------- */
+h2 { font-size: 23px !important; font-weight: 800 !important; letter-spacing: -0.03em; margin-bottom: 10px !important; }
+h3 { font-size: 15px !important; font-weight: 700 !important; letter-spacing: -0.015em; }
+.muted { color: var(--ink-3) !important; }
+
+.kpi-card { display: flex; flex-direction: column; gap: 3px; }
+.kpi-label {
+  font-size: 10.5px !important; font-weight: 750 !important;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3) !important;
+}
+.kpi-value { font-size: 21px !important; font-weight: 800 !important; color: var(--ink) !important; }
+
+.tpl {
+  background: var(--s3) !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  padding: 9px 15px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+.tpl:hover { background: var(--brand-soft) !important; color: var(--brand-ink) !important; transform: none !important; }
+.product-name { font-size: 15px !important; font-weight: 700 !important; }
+.product-brand { font-size: 12.5px !important; color: var(--ink-3) !important; }
+.product-details { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 8px; font-size: 12.5px; }
+.product-details .label { color: var(--ink-3) !important; font-weight: 500 !important; }
+
+/* ---------- 16. Acessibilidade e toque ---------- */
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
+button, .tab-btn, .toast, .bnav-item {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+}
+@media (hover: none) {
+  button:hover, .btn-primary:hover, .fab:hover, .item-row:hover { transform: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- 17. Correções sobre o legado ---------- */
+/* O campo do mercado vive dentro do painel colorido e não deve receber o
+   fundo padrão dos inputs, definido mais acima. */
+.hero .market-field input,
+.hero .market-field input:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+/* styles.css força largura total nas seções da barra em telas pequenas. */
+.list-panel { display: flex; flex-direction: column; }
+.list-actions-bar {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+  margin: 0 0 12px !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid var(--line);
+}
+.list-actions-bar .filter-select,
+.list-actions-bar .sort-select {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto !important;
+  max-width: none;
+  padding: 9px 10px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-sm) !important;
+}
+.list-tools { display: flex; gap: 6px; flex: 0 0 auto; }
+.list-tools .icon-btn { width: 38px; height: 38px; }
+.list-tools .btn-text { display: none; }
+
+/* "Concluir compra" é a ação final: largura total, embaixo da lista. */
+#finalizar.btn-block {
+  margin: 14px 0 4px;
+  padding: 16px !important;
+  font-size: 15.5px !important;
+  border-radius: var(--r-lg) !important;
+}
+#finalizar .btn-text { color: #fff !important; }
+
+#mindReadingSuggestions:empty { display: none; }
+#mindReadingSuggestions {
+  font-size: 12.5px;
+  color: var(--ink-3) !important;
+  margin-bottom: 10px;
+}
+#progress:empty { display: none; }
+
+/* A lista é o conteúdo principal: painel sem moldura concorrente. */
+.list-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Espaço no fim da lista para o botão flutuante e a barra inferior não
+   cobrirem o último item nem a ação de concluir. */
+#tab-lista { padding-bottom: 96px !important; }
+@media (min-width: 768px) { #tab-lista { padding-bottom: 40px !important; } }
+
+/* A caixa vazia da seleção precisa ser visível, não um contorno apagado. */
+.check-mark { border-color: var(--line-strong); background: var(--s3); }
+[data-theme="dark"] .check-mark { background: rgba(148, 170, 205, .07); }
+
+/* O filtro de categoria é o mais longo: ganha um pouco mais de espaço. */
+.list-actions-bar .filter-select { flex: 1.25 1 0; }
+
+/* Selects da barra: texto sem colidir com a seta. */
+.list-actions-bar .filter-select,
+.list-actions-bar .sort-select {
+  padding: 9px 26px 9px 11px !important;
+  font-size: 12px !important;
+  text-overflow: ellipsis;
+}
+
+/* A lista de sugestões flutua sobre o formulário, com altura contida. */
+.fld-name { position: relative; }
+#suggestions {
+  position: absolute !important;
+  top: 100%; left: 0; right: 0;
+  z-index: 30;
+  max-height: 196px !important;
+}
+#suggestions.hidden { display: none !important; }
+
+/* ---------- 18. Ajustes finais ---------- */
+/* No tema claro o desfoque da barra puxava o verde do painel por trás. */
+#bottomNav { background: color-mix(in srgb, var(--s1) 94%, transparent); }
+[data-theme="dark"] #bottomNav { background: color-mix(in srgb, var(--s1) 86%, transparent); }
+
+/* Selects da barra: cabem mais caracteres antes de cortar. */
+.list-actions-bar .filter-select,
+.list-actions-bar .sort-select {
+  font-size: 11.5px !important;
+  padding: 9px 24px 9px 10px !important;
+}
+
+/* Destaque do mercado mais barato, nos relatórios. */
+#cheapestMarketBox > div {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 14px 16px !important;
+  border-radius: var(--r-lg) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  border: 1px solid transparent;
+}
+#cheapestMarketBox b, #cheapestMarketBox span { color: var(--brand-ink) !important; }
+
+/* Chips de produto por mercado */
+#cheapestProductsBox span[class*="rounded"], #cheapestProductsBox .chip {
+  background: var(--s3) !important;
+  border-radius: var(--r-pill) !important;
+  padding: 5px 11px !important;
+  font-size: 12.5px !important;
+}
+
+/* Gráficos respiram dentro dos cartões. */
+#tab-relatorios canvas, #tab-insights canvas { margin-top: 4px; }
+
+/* O título e o seletor disputavam a mesma linha e quebravam. */
+#tab-relatorios .card > div:has(> #reportItemSelect) { display: block !important; }
+.report-item-select {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-md) !important;
+}
+
+/* ---------- 19. Histórico ---------- */
+#historicoList { display: flex; flex-direction: column; gap: 8px; max-height: none !important; }
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+.hist-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; }
+.hist-title {
+  font-size: 15px !important; font-weight: 700 !important;
+  color: var(--ink) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hist-meta {
+  font-size: 12.5px !important;
+  color: var(--ink-3) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hist-total { color: var(--ink) !important; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hist-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.hist-use {
+  height: 36px;
+  padding: 0 16px !important;
+  min-height: 0 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  box-shadow: none !important;
+}
+.hist-use:hover { background: var(--brand) !important; color: #fff !important; transform: none !important; }
+.hist-del {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 !important; min-height: 0 !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  background: transparent !important;
+  color: var(--ink-3) !important;
+  box-shadow: none !important;
+}
+.hist-del:hover { background: var(--danger-soft) !important; color: var(--danger) !important; transform: none !important; }
+
+/* ---------- 20. Listas prontas ---------- */
+/* "Editar" carregava bg-blue-600 e caía na regra do botão principal, virando
+   mais chamativo que "Adicionar", que é a ação de verdade. */
+#tab-sugestoes .card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px !important;
+}
+#tab-sugestoes .card h3 { flex: 1 1 auto; min-width: 0; margin: 0 !important; }
+#tab-sugestoes .card > div {
+  flex: 0 0 auto;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px;
+}
+button.tpl, button.edit-tpl {
+  width: auto !important;
+  height: 36px;
+  min-height: 0 !important;
+  padding: 0 15px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: var(--r-pill) !important;
+  white-space: nowrap;
+}
+button.tpl {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+button.tpl:hover { background: var(--brand) !important; color: #fff !important; transform: none !important; }
+button.edit-tpl {
+  background: transparent !important;
+  color: var(--ink-3) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+  padding: 0 12px !important;
+  font-weight: 600 !important;
+}
+button.edit-tpl:hover { background: var(--s3) !important; color: var(--ink) !important; transform: none !important; }
+
+/* Cartões de "Minhas listas" e produtos seguem a mesma densidade. */
+#tab-sugestoes h2, #tab-produtos h2 { margin-bottom: 12px !important; }
+
+/* ---------- 21. Menu lateral ---------- */
+/* styles.css pinta os itens com [data-theme="dark"] button.tab-btn, que tem
+   mais especificidade; daí o seletor completo aqui. */
+[data-theme="dark"] button.tab-btn,
+[data-theme="light"] button.tab-btn,
+button.tab-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ink-2) !important;
+}
+[data-theme="dark"] button.tab-btn:hover,
+[data-theme="light"] button.tab-btn:hover,
+button.tab-btn:hover { background: var(--s3) !important; color: var(--ink) !important; }
+[data-theme="dark"] button.tab-btn.tab-btn-active,
+[data-theme="light"] button.tab-btn.tab-btn-active,
+button.tab-btn.tab-btn-active {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+}
+
+/* Os ícones vinham com seis cores fixas no SVG. Monocromáticos, eles seguem
+   o estado do item e o menu para de parecer uma paleta. */
+.tab-btn .icon-svg svg,
+.tab-btn .icon-svg svg * {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+.tab-btn .icon-svg { display: inline-flex; opacity: .9; }
+.tab-btn .icon-svg svg { width: 19px; height: 19px; }
+
+#sidebar h2 { font-size: 18px !important; font-weight: 800 !important; letter-spacing: -0.03em; }
+#sidebar nav { gap: 4px !important; margin-top: 12px !important; }
+
+/* ---------- 22. Cadastro de produtos ---------- */
+/* Os campos tinham borda azul do tema antigo e destoavam do resto do app. */
+#tab-produtos input, #tab-produtos select,
+#addProductForm input, #addProductForm select {
+  border: 1.5px solid transparent !important;
+  background: var(--s3) !important;
+  padding: 13px 14px !important;
+}
+#tab-produtos input:focus, #tab-produtos select:focus {
+  border-color: var(--brand) !important;
+  background: var(--s1) !important;
+  box-shadow: 0 0 0 4px var(--brand-soft) !important;
+}
+#addProductForm label, #tab-produtos label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-3) !important;
+}
+.delete-product {
+  width: 34px !important; height: 34px !important;
+  min-width: 0 !important; min-height: 0 !important;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--ink-3) !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  box-shadow: none !important;
+  font-size: 0 !important;
+}
+.delete-product:hover { background: var(--danger-soft) !important; color: var(--danger) !important; transform: none !important; }
+.product-badge { font-size: 11px !important; background: none !important; padding: 0 !important; }
+
+/* O X do menu lateral não precisa competir com o conteúdo. */
+#closeSidebar { box-shadow: none !important; font-size: 15px !important; }
+
+/* O anel azul dos campos vinha do utilitário `ring-1` do Tailwind, que usa
+   box-shadow — por isso sobreviveu às regras de borda. */
+input.ring-1, select.ring-1, textarea.ring-1,
+#tab-produtos input, #tab-produtos select,
+#addProductForm input, #addProductForm select {
+  --tw-ring-shadow: 0 0 #0000;
+  box-shadow: none !important;
+}
+#tab-produtos input:focus, #tab-produtos select:focus,
+#addProductForm input:focus, #addProductForm select:focus {
+  box-shadow: 0 0 0 4px var(--brand-soft) !important;
+}
+
+/* styles.css pinta .delete-product de vermelho por tema; daí o seletor completo. */
+[data-theme="light"] .delete-product,
+[data-theme="dark"] .delete-product,
+button.delete-product {
+  background: transparent !important;
+  color: var(--ink-3) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[data-theme="light"] .delete-product:hover,
+[data-theme="dark"] .delete-product:hover,
+button.delete-product:hover {
+  background: var(--danger-soft) !important;
+  color: var(--danger) !important;
+}
+
+/* ---------- 23. Confirmação dentro da folha ----------
+   A folha fica aberta para o próximo item; esta linha mostra o que já entrou,
+   para não restar dúvida de que o toque funcionou. */
+.sheet-recentes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 14px;
+  animation: item-open .2s var(--ease);
+}
+.sheet-recentes[hidden] { display: none; }
+.recentes-rot {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3) !important; margin-right: 2px;
+}
+.recente-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--brand-soft);
+  color: var(--brand-ink) !important;
+  font-size: 12.5px; font-weight: 650;
+}
+.recente-chip::before { content: '✓'; font-weight: 800; }
+
+/* Com a folha aberta os avisos sobem para o topo, longe dos campos. */
+body.sheet-open #toastHost {
+  top: calc(14px + env(safe-area-inset-top));
+  bottom: auto;
+  z-index: 1300;
+}
+/* Chips numa linha só, rolando de lado: a folha não cresce a cada item. */
+.sheet-recentes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.sheet-recentes::-webkit-scrollbar { display: none; }
+.recente-chip, .recentes-rot { flex: 0 0 auto; white-space: nowrap; }
+.recente-chip b { font-weight: 800; opacity: .8; }
+
+/* Ação dentro do aviso (ex.: Desfazer) */
+.toast { align-items: center; }
+.toast-acao {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  padding: 6px 12px !important;
+  min-height: 0 !important;
+  border: none !important;
+  border-radius: var(--r-pill) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+.toast-acao:hover { background: var(--brand) !important; color: #fff !important; transform: none !important; }
+
+/* ---------- 24. Ajustes da auditoria ---------- */
+
+/* Desfazer: regras genéricas de botão o esticavam além do aviso. */
+.toast .toast-msg { min-width: 0; }
+.toast .toast-acao {
+  width: auto !important;
+  max-width: 45%;
+  height: 34px;
+  white-space: nowrap;
+}
+
+/* "Concluir compra" e o botão + disputavam o mesmo canto. */
+#finalizar.btn-block { width: calc(100% - 80px) !important; }
+#finalizar[hidden] { display: none !important; }
+@media (min-width: 768px) { #finalizar.btn-block { width: 100% !important; } }
+
+/* Campo de nome na edição ocupa a linha inteira. */
+.field-nome { flex: 1 1 100%; }
+.field-nome input { width: 100% !important; text-align: left !important; }
+
+/* Confirmações: mesma linguagem do resto do app. */
+.modal-backdrop { background: rgba(4, 8, 16, .6) !important; backdrop-filter: blur(4px); }
+.modal-box {
+  background: var(--s1) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-xl) !important;
+  box-shadow: var(--shadow-3) !important;
+  padding: 22px 20px 18px !important;
+}
+.modal-msg { font-size: 15.5px !important; line-height: 1.5 !important; color: var(--ink) !important; }
+.modal-input { margin-top: 4px; }
+.modal-actions { gap: 10px !important; }
+.modal-actions button { flex: 1 1 0; height: 48px; padding: 0 14px !important; font-size: 15px !important; border-radius: var(--r-md) !important; }
+.modal-ok {
+  background: linear-gradient(135deg, var(--brand-2), var(--brand)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 16px var(--glow) !important;
+}
+.modal-ok.danger { background: var(--danger) !important; box-shadow: none !important; }
+.modal-cancel { background: var(--s3) !important; color: var(--ink) !important; border: none !important; }

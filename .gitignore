@@ -20,3 +20,12 @@ npm-debug.log*
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Capacitor / Android nativo
+android/local.properties
+android/keystore.properties
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/
+www/
+Listou-debug.apk

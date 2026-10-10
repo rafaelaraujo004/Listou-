@@ -1,20 +1,47 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Logo: Listou - Prancheta com itens selecionados, visual de app todo -->
-</svg>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="100" fill="#4BA3FA"/>
-  <rect x="116" y="96" width="280" height="320" rx="32" fill="white"/>
-  <rect x="196" y="72" width="120" height="32" rx="16" fill="#B0BEC5"/>
-  <rect x="156" y="140" width="200" height="24" rx="12" fill="#E3EAF2"/>
-  <rect x="156" y="188" width="200" height="24" rx="12" fill="#E3EAF2"/>
-  <rect x="156" y="236" width="200" height="24" rx="12" fill="#E3EAF2"/>
-  <rect x="156" y="284" width="200" height="24" rx="12" fill="#E3EAF2"/>
-  <rect x="156" y="332" width="200" height="24" rx="12" fill="#E3EAF2"/>
-  <circle cx="176" cy="152" r="8" fill="#4BA3FA"/>
-  <circle cx="176" cy="200" r="8" fill="#4BA3FA"/>
-  <circle cx="176" cy="248" r="8" fill="#4BA3FA"/>
-  <circle cx="176" cy="296" r="8" fill="#4BA3FA"/>
-  <circle cx="176" cy="344" r="8" fill="#4BA3FA"/>
-  <text x="50%" y="470" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="80" fill="white" font-weight="bold">listou</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Listou">
+  <!-- Logo do Listou.
+       Símbolo único, sem texto: a 48px (mdpi) qualquer palavra vira borrão.
+       O desenho cabe em ~72% do quadro, deixando margem para as máscaras que
+       Android e iOS aplicam por cima. -->
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3ddcaa"/>
+      <stop offset="0.5" stop-color="#12b886"/>
+      <stop offset="1" stop-color="#0b8cb8"/>
+    </linearGradient>
+    <linearGradient id="brilho" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.62" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="sombra" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#04352b" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="114" fill="url(#fundo)"/>
+  <rect width="512" height="512" rx="114" fill="url(#brilho)"/>
+
+  <g filter="url(#sombra)">
+    <!-- Prancheta, centrada no quadro -->
+    <rect x="132" y="122" width="248" height="286" rx="38" fill="#ffffff"/>
+  </g>
+  <!-- Presilha encaixada na borda de cima, não solta acima dela -->
+  <rect x="207" y="100" width="98" height="50" rx="25" fill="#0c7b64"/>
+  <rect x="220" y="111" width="72" height="28" rx="14" fill="#42e0ad"/>
+
+  <!-- Dois itens marcados e um por marcar: conta a história da lista sem texto. -->
+  <g>
+    <circle cx="189" cy="203" r="22" fill="#12b886"/>
+    <path d="M179.5 203l6.8 7 12.4-13.4" fill="none" stroke="#ffffff" stroke-width="8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="226" y="192" width="122" height="22" rx="11" fill="#c3d6d9"/>
+
+    <circle cx="189" cy="273" r="22" fill="#12b886"/>
+    <path d="M179.5 273l6.8 7 12.4-13.4" fill="none" stroke="#ffffff" stroke-width="8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="226" y="262" width="94" height="22" rx="11" fill="#c3d6d9"/>
+
+    <circle cx="189" cy="343" r="19" fill="none" stroke="#aec3c7" stroke-width="7.5"/>
+    <rect x="226" y="332" width="110" height="22" rx="11" fill="#dbe8ea"/>
+  </g>
 </svg>

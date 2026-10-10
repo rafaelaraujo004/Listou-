@@ -6,9 +6,19 @@
   "scripts": {
     "icons:imagemagick": "magick convert logo.svg -resize 192x192 icon-192.png && magick convert logo.svg -resize 512x512 icon-512.png",
     "icons:sharp": "node scripts/gen-icons.js",
-    "icons": "npm run icons:sharp || npm run icons:imagemagick"
+    "icons": "npm run icons:sharp || npm run icons:imagemagick",
+    "build:www": "node build-www.js",
+    "android:apk": "powershell -ExecutionPolicy Bypass -File ./android-build.ps1 apk",
+    "android:aab": "powershell -ExecutionPolicy Bypass -File ./android-build.ps1 aab",
+    "android:icons": "node gen-android-icons.js",
+    "android:verificar": "powershell -ExecutionPolicy Bypass -File ./verificar-assinatura.ps1",
+    "android:assinar": "powershell -ExecutionPolicy Bypass -File ./assinar.ps1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "puppeteer-core": "^25.10.0",
     "sharp": "^0.33.3"
   }
 }

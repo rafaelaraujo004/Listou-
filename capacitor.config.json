@@ -1,0 +1,11 @@
+{
+  "appId": "br.com.listou.app",
+  "appName": "Listou",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

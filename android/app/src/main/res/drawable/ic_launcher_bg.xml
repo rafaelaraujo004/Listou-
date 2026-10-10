@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fundo do ícone adaptativo: o mesmo gradiente da marca usado em logo.svg. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="315"
+        android:startColor="#3DDCAA"
+        android:centerColor="#12B886"
+        android:endColor="#0B8CB8" />
+</shape>
