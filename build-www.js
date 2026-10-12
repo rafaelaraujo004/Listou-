@@ -8,7 +8,7 @@ const www = path.join(root, 'www');
 
 // vendor/ fica na raiz (versionado) e e copiado para dentro de www/.
 const ASSETS = [
-  'index.html', 'app.js', 'styles.css', 'theme.css', 'manifest.json', 'sw.js',
+  'index.html', 'app.js', 'sugestoes.js', 'painel.js', 'styles.css', 'theme.css', 'manifest.json', 'sw.js',
   'Ícone de lista de compras.png',
 ];
 const ICON_GLOB = /^icon-.*\.png$/;

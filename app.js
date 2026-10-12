@@ -282,61 +282,97 @@ document.addEventListener('DOMContentLoaded', function() {
 });
   'use strict';
     // ===== Histórico de Compras =====
+    // Compras agrupadas por mes, do mais recente para o mais antigo.
+    // "Repetir" abre a mesma folha de escolha das listas prontas; antes, "Usar"
+    // trocava a lista inteira e trazia os itens ja marcados como comprados.
     function renderHistorico() {
       const list = document.getElementById('historicoList');
       const vazio = document.getElementById('historicoVazio');
+      const resumo = document.getElementById('histResumo');
       if (!list || !vazio) return;
-      list.innerHTML = '';
+      const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const totalDe = h => (h.items || []).reduce((s2, it) => s2 + numBR(it.qty) * numBR(it.price), 0);
+
       if (!history.length) {
-        vazio.style.display = '';
+        list.innerHTML = '';
+        vazio.hidden = false;
+        if (resumo) resumo.hidden = true;
         return;
       }
-      vazio.style.display = 'none';
-      history.forEach(entry => {
-        const li = document.createElement('li');
-        const data = new Date(entry.at);
-        const nome = entry.name || 'Compra';
-        const quando = data.toLocaleDateString('pt-BR') + ' às ' + data.toLocaleTimeString('pt-BR').slice(0,5);
-        const nItens = (entry.items||[]).length;
-        // Calcula total da compra
-        const total = (entry.items||[]).reduce((sum, it) => sum + ((Number(it.qty)||0)*(Number(it.price)||0)), 0);
-        // Mercado salvo
-        const mercado = entry.market || entry.mercado || '—';
-        li.className = 'hist-row';
-        li.innerHTML = `<div class='hist-info'>
-            <b class='hist-title'>${nome}</b>
-            <span class='hist-meta'>${quando} • ${nItens} ite${nItens === 1 ? 'm' : 'ns'}</span>
-            <span class='hist-meta'>${mercado} • <b class='hist-total'>${money(total)}</b></span>
-          </div>
-          <div class='hist-actions'>
-            <button class='hist-use' data-restore='${entry.id}'>Usar</button>
-            <button class='hist-del' data-del-hist='${entry.id}' aria-label='Excluir do histórico' title='Excluir'>
-              <svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/></svg>
-            </button>
-          </div>`;
-        list.appendChild(li);
+      vazio.hidden = true;
+
+      const ordenado = history.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+      const geral = ordenado.reduce((s2, h) => s2 + totalDe(h), 0);
+      if (resumo) {
+        resumo.hidden = false;
+        resumo.innerHTML = '<div><b>' + ordenado.length + '</b><span>' + (ordenado.length === 1 ? 'compra' : 'compras') + '</span></div>'
+          + '<div><b>' + money(geral) + '</b><span>gasto no total</span></div>'
+          + '<div><b>' + money(geral / ordenado.length) + '</b><span>por compra</span></div>';
+      }
+
+      const grupos = [];
+      ordenado.forEach(h => {
+        const d = new Date(h.at);
+        const chave = isNaN(d) ? 'sem-data' : d.getFullYear() + '-' + d.getMonth();
+        let g = grupos.find(x => x.chave === chave);
+        if (!g) {
+          const rot = isNaN(d) ? 'Sem data' : d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+          g = { chave, rotulo: rot.charAt(0).toUpperCase() + rot.slice(1), itens: [], total: 0 };
+          grupos.push(g);
+        }
+        g.itens.push(h); g.total += totalDe(h);
       });
+
+      list.innerHTML = grupos.map(g => `
+        <li class="hs-grupo">
+          <div class="hs-mes"><span>${esc(g.rotulo)}</span><b>${money(g.total)}</b></div>
+          <div class="hs-cartoes">${g.itens.map(h => {
+            const d = new Date(h.at);
+            const hora = isNaN(d) ? '' : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const dia = isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' }).replace('.', '');
+            const mercado = h.market || h.mercado || '';
+            const titulo = h.name || (mercado ? 'Compra no ' + mercado : 'Compra');
+            const n = (h.items || []).length;
+            const previa = (h.items || []).slice(0, 4).map(i => esc(i.name)).join(', ') + (n > 4 ? ' e mais ' + (n - 4) : '');
+            return `<div class="hs-card">
+              <div class="hs-dia"><b>${isNaN(d) ? '—' : d.getDate()}</b><span>${isNaN(d) ? '' : esc(dia.split(' ')[0].replace(/[.,]/g, ''))}</span></div>
+              <div class="hs-info">
+                <div class="hs-topo"><b>${esc(titulo)}</b><em>${money(totalDe(h))}</em></div>
+                <span class="hs-meta">${n} ${n === 1 ? 'item' : 'itens'}${h.name && mercado ? ' · ' + esc(mercado) : ''}${hora && hora !== '00:00' ? ' · ' + hora : ''}</span>
+                <span class="hs-previa">${previa}</span>
+                <div class="hs-acoes">
+                  <button class="hs-repetir" data-restore="${esc(h.id)}">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
+                    Repetir compra</button>
+                  <button class="hs-excluir" data-del-hist="${esc(h.id)}" aria-label="Excluir do histórico">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}</div>
+        </li>`).join('');
+
       list.querySelectorAll('button[data-del-hist]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-del-hist');
-          if (!await uiConfirm('Excluir esta compra do histórico?', { okLabel: 'Excluir', danger: true })) return;
-          history = history.filter(h => h.id !== id);
+          const pos = history.findIndex(h => h.id === id);
+          if (pos < 0) return;
+          if (!await uiConfirm('Excluir esta compra do histórico? Ela deixa de contar nos relatórios.', { okLabel: 'Excluir', danger: true })) return;
+          const [removida] = history.splice(pos, 1);
           save(); renderHistorico(); renderReports();
-          toast('Compra removida do histórico.', 'success');
+          toast('Compra excluída', 'info', 5000, { rotulo: 'Desfazer',
+            aoTocar: () => { history.splice(pos, 0, removida); save(); renderHistorico(); renderReports(); } });
         });
       });
-      // Evento para restaurar lista
       list.querySelectorAll('button[data-restore]').forEach(btn => {
-        btn.addEventListener('click', async e => {
-          const id = btn.getAttribute('data-restore');
-          const entry = history.find(h => h.id === id);
-          if (!entry) return;
-          if (!await uiConfirm('Deseja substituir sua lista atual por esta do histórico?', { okLabel: 'Substituir' })) return;
-          items = entry.items.map(i => Object.assign({}, i));
-          save();
-          render();
-          setTab('lista');
-          toast('Lista restaurada do histórico!', 'success');
+        btn.addEventListener('click', () => {
+          const h = history.find(x => x.id === btn.getAttribute('data-restore'));
+          if (!h || !window.abrirPreviaItens) return;
+          const itens = (h.items || []).map(i => ({ name: i.name, category: i.category || 'Outros', unit: i.unit || 'un',
+                                                    qty: numBR(i.qty) || 1, price: numBR(i.price), done: false }));
+          const titulo = h.name || ((h.market || h.mercado) ? 'Compra no ' + (h.market || h.mercado) : 'Compra');
+          window.abrirPreviaItens(titulo, '🧾', itens, titulo);
         });
       });
     }
@@ -405,11 +441,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function updateThemeLabel() {
-    const label = $('#themeLabel');
-    if (label) {
-      label.textContent = currentTheme === 'light' ? 'Modo claro' : 'Modo escuro';
-    }
+    document.querySelectorAll('[data-tema]').forEach(b =>
+      b.setAttribute('aria-checked', String(b.getAttribute('data-tema') === currentTheme)));
   }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-tema]');
+    if (b && b.getAttribute('data-tema') !== currentTheme) toggleTheme();
+  });
   
   // Initialize theme
   setTheme(currentTheme);
@@ -444,6 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // aqui também garante que os dados refletem a lista atual.
     if (id === 'insights') renderInsights();
     if (id === 'relatorios') renderReports();
+    if (id === 'sugestoes' && window.renderSugestoes) window.renderSugestoes();
+    if (id === 'config') renderResumoDados();
     if (window.Chart) {
       requestAnimationFrame(()=> sec.querySelectorAll('canvas').forEach(c => {
         const chart = Chart.getChart(c);
@@ -476,6 +516,37 @@ document.addEventListener('DOMContentLoaded', function() {
       if (alvo) alvo.click(); else setTab(item.getAttribute('data-tab'));
     });
   });
+  // Resumo do que esta guardado no aparelho, na aba Ajustes.
+  function renderResumoDados(){
+    const box = $('#cfDados'); if (!box) return;
+    const n = (v, um, varios) => v + ' ' + (v === 1 ? um : varios);
+    box.innerHTML = [
+      [items.length, 'item na lista', 'itens na lista'],
+      [history.length, 'compra no histórico', 'compras no histórico'],
+      [customProducts.length, 'produto cadastrado', 'produtos cadastrados'],
+      [userLists.length, 'lista salva', 'listas salvas'],
+    ].map(([v, um, varios]) => '<div><b>' + v + '</b><span>' + n(v, um, varios).replace(/^\d+ /, '') + '</span></div>').join('');
+  }
+
+  // Ponte para painel.js (Insights e Relatorios).
+  window.__listouDados = { items: () => items, history: () => history, priceHistory: () => priceHistory };
+
+  // Ponte para sugestoes.js: le os dados atuais e usa as mesmas acoes da lista.
+  window.__listouSug = {
+    items: () => items,
+    suggestions: () => suggestions,
+    userLists: () => userLists,
+    adicionar: it => upsertItem(Object.assign({}, it)),
+    removerLista: i => { userLists.splice(i, 1); save(); },
+    salvarListaAtual: nome => {
+      const copia = items.map(i => ({ name: i.name, category: i.category, unit: i.unit, qty: numBR(i.qty) || 1, price: numBR(i.price) }));
+      userLists.unshift({ name: nome, items: copia, at: Date.now() });
+      save();
+      return copia.length;
+    },
+    irParaLista: () => irParaAba('lista'),
+  };
+
   // Volta para uma aba passando pelo mesmo caminho do toque no menu.
   function irParaAba(id){
     const alvo = $$('.tab-btn').find(b => b.getAttribute('data-tab') === id);
@@ -1480,23 +1551,8 @@ function upsertItem(partial){
 
   // ===== Insights =====
   let chartCategorias=null, chartABC=null;
-  function renderInsights(){
-    const total = items.reduce((s,i)=> s + i.qty*i.price, 0);
-    const kpiItens = items.length; const ticket = kpiItens? total/kpiItens : 0; const doneVal = items.filter(i=>!!i.done).reduce((s,i)=> s + i.qty*i.price, 0);
-    $('#kpiTotal') && ($('#kpiTotal').textContent = money(total));
-    $('#kpiItens') && ($('#kpiItens').textContent = String(kpiItens));
-    $('#kpiTicket') && ($('#kpiTicket').textContent = money(ticket));
-    $('#kpiDone') && ($('#kpiDone').textContent = money(doneVal));
-
-    const catMap={}; items.forEach(i=>{ const c=i.category||'Outros'; catMap[c]=(catMap[c]||0)+i.qty*i.price; });
-    const labels=Object.keys(catMap); const data=Object.values(catMap);
-    const catCanvas = $('#chartCategorias');
-    if(catCanvas){ chartCategorias?.destroy(); chartCategorias = new Chart(catCanvas,{ type:'doughnut', data:{ labels, datasets:[{ data }] }, options:{ plugins:{ legend:{ position:'bottom' }}}}); }
-
-    const sorted = items.slice().sort((a,b)=> (b.qty*b.price)-(a.qty*a.price)).slice(0,8);
-    const abcCanvas = $('#chartABC');
-    if(abcCanvas){ chartABC?.destroy(); chartABC = new Chart(abcCanvas,{ type:'bar', data:{ labels: sorted.map(i=> i.name||'—'), datasets:[{ data: sorted.map(i=> i.qty*i.price) }] }, options:{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true }}}}); }
-  }
+  // Desenhado por painel.js; aqui so repassa (render() chama isto a cada mudanca).
+  function renderInsights(){ window.Painel && window.Painel.insights(); }
 
   // ===== Relatórios =====
   let chartMes=null, chartFreq=null, chartItemMarket=null, chartRankingVar=null;
@@ -1539,88 +1595,7 @@ function upsertItem(partial){
     if(ctx){ chartRankingVar?.destroy(); chartRankingVar = new Chart(ctx,{ type:'bar', data:{ labels, datasets:[{ label:'∆% (último vs anterior)', data }] }, options:{ plugins:{ legend:{ position:'bottom' }}, scales:{ y:{ beginAtZero:true }}} }); }
   }
 
-  function renderReports(){
-    refreshReportItemSelect();
-    const sel=$('#reportItemSelect'); if(sel){ sel.onchange = ()=>{ renderMarketComparison(); }; }
-    renderMarketComparison(); renderRankingVar();
-
-    // Comparação automática do supermercado mais barato
-    // Soma todos os preços mais recentes de cada item por mercado. Calculado uma
-    // única vez porque o gráfico e a lista de produtos abaixo usam os mesmos totais.
-    const marketTotals = {};
-    const marketProducts = {};
-    Object.keys(priceHistory).forEach(itemName => {
-      const markets = priceHistory[itemName];
-      Object.keys(markets).forEach(market => {
-        const arr = markets[market];
-        if (arr && arr.length) {
-          const last = arr[arr.length-1];
-          marketTotals[market] = (marketTotals[market]||0) + (last.price||0);
-          if (!marketProducts[market]) marketProducts[market] = [];
-          marketProducts[market].push({ name: itemName, price: last.price });
-        }
-      });
-    });
-    let cheapest = null;
-    let cheapestValue = null;
-    Object.entries(marketTotals).forEach(([market, total]) => {
-      if (cheapestValue === null || total < cheapestValue) {
-        cheapest = market;
-        cheapestValue = total;
-      }
-    });
-
-    const cheapestBox = document.getElementById('cheapestMarketBox');
-    if (cheapestBox) {
-      if (cheapest) {
-        cheapestBox.innerHTML = `<div class="p-3 rounded-lg bg-emerald-900/60 text-emerald-200 flex items-center gap-2"><span class="font-bold">Supermercado mais barato:</span> <span class="font-semibold">${cheapest}</span> <span class="ml-2 text-xs">(total estimado: <b>${money(cheapestValue)}</b>)</span></div>`;
-      } else {
-        cheapestBox.innerHTML = '<div class="p-3 rounded-lg bg-slate-800/60 text-slate-300">Não há dados suficientes para comparar supermercados.</div>';
-      }
-    }
-      const chartMarketsTotalCanvas = document.getElementById('chartMarketsTotal');
-      const cheapestProductsBox = document.getElementById('cheapestProductsBox');
-      // Gráfico de barras dos mercados
-      if (chartMarketsTotalCanvas) {
-        if (window.__chartMarketsTotal) window.__chartMarketsTotal.destroy();
-        const labels = Object.keys(marketTotals);
-        const data = Object.values(marketTotals);
-        const css = getComputedStyle(document.documentElement);
-        const corBarato = css.getPropertyValue('--brand').trim();
-        const corOutros = css.getPropertyValue('--ink-3').trim();
-        // Destaque só para o mercado mais barato; os demais ficam neutros.
-        const bgColors = labels.map(m => m === cheapest ? corBarato : corOutros);
-        window.__chartMarketsTotal = new Chart(chartMarketsTotalCanvas, {
-          type: 'bar',
-          data: { labels, datasets: [{ label: 'Total estimado', data, backgroundColor: bgColors }] },
-          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
-      }
-      // Produtos mais baratos por mercado
-      if (cheapestProductsBox) {
-        let html = '';
-        Object.entries(marketProducts).forEach(([market, prods]) => {
-          prods.sort((a,b)=>a.price-b.price);
-          html += `<div class="mb-2"><span class="font-bold">${market}:</span> `;
-          html += prods.slice(0,5).map(p=> `<span class="inline-block bg-white/10 rounded px-2 py-1 mx-1 text-xs">${p.name} <b>${money(p.price)}</b></span>`).join('');
-          html += '</div>';
-        });
-        cheapestProductsBox.innerHTML = html || '<span class="muted">Sem dados de produtos.</span>';
-      }
-
-    const byMonth = {};
-    history.forEach(h=>{ const d=new Date(h.at); const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); byMonth[k]=(byMonth[k]||0)+h.total; });
-    const mLabels = Object.keys(byMonth).sort(); const mData = mLabels.map(k=> byMonth[k]);
-    const mesCanvas = $('#chartGastosMes');
-    if(mesCanvas){ chartMes?.destroy(); chartMes = new Chart(mesCanvas,{ type:'line', data:{ labels:mLabels, datasets:[{ label:'Gastos (R$)', data:mData, tension:0.2 }] }, options:{ plugins:{ legend:{ position:'bottom' }}}}); }
-
-    const freq = {};
-    history.forEach(h=> h.items.forEach(i=>{ const k=i.name||'—'; freq[k]=(freq[k]||0)+i.qty; }));
-    const fEntries = Object.entries(freq).sort((a,b)=> b[1]-a[1]).slice(0,10);
-    const fLabels = fEntries.map(x=>x[0]); const fData = fEntries.map(x=>x[1]);
-    const freqCanvas = $('#chartFreq');
-    if(freqCanvas){ chartFreq?.destroy(); chartFreq = new Chart(freqCanvas,{ type:'bar', data:{ labels:fLabels, datasets:[{ label:'Frequência', data:fData }] }, options:{ plugins:{ legend:{ position:'bottom' }}, scales:{ y:{ beginAtZero:true }}}}); }
-  }
+  function renderReports(){ window.Painel && window.Painel.relatorios(); }
 
   // ===== Mercado =====
   const marketInput = $('#market'); const saveMarketBtn = $('#saveMarket');
@@ -1765,156 +1740,145 @@ function upsertItem(partial){
   // ...função de salvar lista atual removida...
 
   // ===== Produtos Cadastrados =====
+  // ===== Produtos cadastrados =====
+  // Lista primeiro; o formulario abre numa folha para cadastrar ou editar.
+  // Antes, "Editar" apagava o produto na hora e so o recriava ao salvar: quem
+  // desistia no meio perdia o produto.
+  const CORES_PROD = { 'Mercearia':'#f59f00','Cereais':'#e8590c','Laticínios':'#4dabf7','Hortifruti':'#40c057',
+    'Carnes':'#fa5252','Bebidas':'#845ef7','Limpeza':'#15aabf','Higiene':'#e64980','Outros':'#868e96' };
+  const escP = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let editandoProduto = -1;
+  let buscaProduto = '';
+
   function renderProducts(){
-    const list = $('#productsList');
-    const empty = $('#productsEmpty');
-    const count = $('#productCount');
-    if(!list || !empty || !count) return;
-    
-    count.textContent = customProducts.length + ' produto' + (customProducts.length !== 1 ? 's' : '');
-    
+    const list = $('#productsList'); const empty = $('#productsEmpty'); const count = $('#productCount');
+    if(!list || !empty) return;
+    if (count) count.textContent = customProducts.length + (customProducts.length === 1 ? ' produto' : ' produtos');
+    const busca = $('#prodBusca');
+    if (busca) busca.closest('.pd-busca').hidden = customProducts.length < 6;
+
+    const q = buscaProduto.trim().toLowerCase();
+    const visiveis = customProducts
+      .map((p, idx) => ({ p, idx }))
+      .filter(({ p }) => !q || (p.name + ' ' + (p.brand||'') + ' ' + (p.category||'')).toLowerCase().includes(q))
+      .sort((a, b) => a.p.name.localeCompare(b.p.name, 'pt-BR'));
+
     if(!customProducts.length){
       list.innerHTML = '';
-      empty.style.display = '';
+      empty.hidden = false;
       return;
     }
-    
-    empty.style.display = 'none';
-    list.innerHTML = customProducts.map((p, idx) => `
-      <div class='product-card'>
-        <div class='product-header'>
-          <div class='product-info'>
-            <div class='product-name'>
-              ${p.name}
-              <span class='product-badge'>⭐</span>
-            </div>
-            ${p.brand ? `<div class='product-brand'>${p.brand}</div>` : ''}
-          </div>
-          <button class='delete-product' data-idx='${idx}' title='Remover' aria-label='Remover produto'><svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/></svg></button>
-        </div>
-        <div class='product-details'>
-          <span><span class='label'>Categoria:</span> <strong>${p.category}</strong></span>
-          <span><span class='label'>Unidade:</span> <strong>${p.unit}</strong></span>
-          <span><span class='label'>Preço:</span> <strong>${money(p.price||0)}</strong></span>
-        </div>
-        <div class='product-actions'>
-          <button class='add-product-to-list' data-idx='${idx}'>➕ Adicionar à lista</button>
-          <button class='edit-product' data-idx='${idx}'>✏️ Editar</button>
-        </div>
-      </div>
-    `).join('');
-    
-    // Eventos de adicionar à lista
-    list.querySelectorAll('.add-product-to-list').forEach(btn => {
-      btn.addEventListener('click', () => {
-        playSound('click');
-        const idx = Number(btn.getAttribute('data-idx'));
-        const p = customProducts[idx];
-        if(p) {
-          upsertItem({ name: p.name, category: p.category, unit: p.unit, qty: 1, price: p.price||0 });
-          playSound('success');
-          setTab('lista');
-        }
-      });
-    });
-    
-    // Eventos de remover
-    list.querySelectorAll('.delete-product').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        playSound('click');
-        const idx = Number(btn.getAttribute('data-idx'));
-        if (await uiConfirm('Remover este produto cadastrado?', { okLabel: 'Remover', danger: true })) {
-          customProducts.splice(idx, 1);
-          save();
-          renderProducts();
-          playSound('success');
-        } else {
-          playSound('error');
-        }
-      });
-    });
-    
-    // Eventos de editar
-    list.querySelectorAll('.edit-product').forEach(btn => {
-      btn.addEventListener('click', () => {
-        playSound('click');
-        const idx = Number(btn.getAttribute('data-idx'));
-        const p = customProducts[idx];
-        if(!p) return;
-        
-        // Preencher formulário
-        $('#productName').value = p.name;
-        $('#productCategory').value = p.category;
-        $('#productUnit').value = p.unit;
-        $('#productPrice').value = p.price||'';
-        $('#productBrand').value = p.brand||'';
-        
-        // Remover produto atual
-        customProducts.splice(idx, 1);
-        save();
-        renderProducts();
-        
-        // Scroll para o formulário
-        $('#productName').focus();
-        $('#productName').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    });
+    empty.hidden = true;
+    if (!visiveis.length) { list.innerHTML = '<div class="pd-semres">Nenhum produto com "' + escP(buscaProduto) + '".</div>'; return; }
+
+    list.innerHTML = visiveis.map(({ p, idx }) => {
+      const cor = CORES_PROD[p.category] || CORES_PROD.Outros;
+      const meta = [p.brand, p.category, p.unit].filter(Boolean).map(escP).join(' · ');
+      return `<div class="pd-item">
+          <span class="pd-avatar" style="--pd-cor:${cor}">${escP((p.name||'?').charAt(0).toUpperCase())}</span>
+          <button class="pd-info" data-pd-editar="${idx}" aria-label="Editar ${escP(p.name)}">
+            <b>${escP(p.name)}</b><span>${meta}</span>
+          </button>
+          <span class="pd-preco">${Number(p.price) > 0 ? money(p.price) : ''}</span>
+          <button class="pd-add" data-pd-add="${idx}" aria-label="Adicionar ${escP(p.name)} à lista">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>`;
+    }).join('');
   }
-  
-  // Form de adicionar produto
+
+  $('#prodBusca')?.addEventListener('input', e => { buscaProduto = e.target.value; renderProducts(); });
+
+  $('#productsList')?.addEventListener('click', e => {
+    const add = e.target.closest('[data-pd-add]');
+    if (add) {
+      const p = customProducts[Number(add.dataset.pdAdd)]; if (!p) return;
+      upsertItem({ name: p.name, category: p.category, unit: p.unit, qty: 1, price: p.price || 0 });
+      playSound('success');
+      add.classList.add('is-ok');
+      setTimeout(() => add.classList.remove('is-ok'), 900);
+      toast(p.name + ' adicionado à lista', 'success', 2600, { rotulo: 'Ver lista', aoTocar: () => irParaAba('lista') });
+      return;
+    }
+    const ed = e.target.closest('[data-pd-editar]');
+    if (ed) abrirFolhaProduto(Number(ed.dataset.pdEditar));
+  });
+
+  // Folha do formulario
+  const prodSheet = $('#prodSheet');
+  function abrirFolhaProduto(idx){
+    if (!prodSheet || prodSheet.classList.contains('is-open')) return;
+    editandoProduto = Number.isFinite(idx) ? idx : -1;
+    const p = customProducts[editandoProduto];
+    $('#prodSheetTitulo').textContent = p ? 'Editar produto' : 'Novo produto';
+    $('#productName').value = p ? p.name : '';
+    $('#productCategory').value = p ? (p.category || '') : '';
+    $('#productUnit').value = p ? (p.unit || 'un') : 'un';
+    $('#productPrice').value = p && Number(p.price) > 0 ? fmtPreco(p.price) : '';
+    $('#productBrand').value = p ? (p.brand || '') : '';
+    $('#prodExcluir').hidden = !p;
+    $('#prodSalvar').lastChild.textContent = p ? ' Salvar alterações' : ' Cadastrar produto';
+    prodSheet.hidden = false;
+    requestAnimationFrame(() => prodSheet.classList.add('is-open'));
+    document.body.classList.add('sheet-open');
+    empilharVoltar('prodSheet', fecharFolhaProduto);
+  }
+  function fecharFolhaProduto(){
+    if (!prodSheet || !prodSheet.classList.contains('is-open')) return;
+    prodSheet.classList.remove('is-open');
+    document.body.classList.remove('sheet-open');
+    desempilharVoltar('prodSheet');
+    setTimeout(() => { prodSheet.hidden = true; }, 220);
+  }
+  $('#prodNovo')?.addEventListener('click', () => abrirFolhaProduto(-1));
+  $('#prodNovoVazio')?.addEventListener('click', () => abrirFolhaProduto(-1));
+  prodSheet?.querySelectorAll('[data-prod-fechar]').forEach(el => el.addEventListener('click', fecharFolhaProduto));
+  $('#productName')?.addEventListener('input', () => {
+    // categoria sugerida pelo nome enquanto o usuario nao escolhe uma
+    const sel = $('#productCategory'); if (!sel || sel.dataset.manual) return;
+    const cat = suggestCategory($('#productName').value || '');
+    if (cat) sel.value = cat;
+  });
+  $('#productCategory')?.addEventListener('change', e => { e.target.dataset.manual = '1'; });
+
+  $('#prodExcluir')?.addEventListener('click', async () => {
+    const p = customProducts[editandoProduto]; if (!p) return;
+    if (!await uiConfirm('Excluir "' + p.name + '" dos seus produtos?', { okLabel: 'Excluir', danger: true })) return;
+    const [removido] = customProducts.splice(editandoProduto, 1);
+    const pos = editandoProduto;
+    save(); fecharFolhaProduto(); renderProducts();
+    toast(removido.name + ' excluído', 'info', 5000, { rotulo: 'Desfazer',
+      aoTocar: () => { customProducts.splice(pos, 0, removido); save(); renderProducts(); } });
+  });
+
   const addProductForm = $('#addProductForm');
   addProductForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    playSound('click');
     const name = $('#productName')?.value?.trim();
-    const category = $('#productCategory')?.value?.trim();
+    const category = $('#productCategory')?.value?.trim() || suggestCategory(name || '') || 'Outros';
     const unit = $('#productUnit')?.value || 'un';
     const price = Math.max(0, numBR($('#productPrice')?.value));
     const brand = $('#productBrand')?.value?.trim() || '';
-    
-    if(!name){
-      playSound('error');
-      toast('Digite o nome do produto.', 'error');
-      $('#productName')?.focus();
-      return;
+    if(!name){ playSound('error'); toast('Digite o nome do produto.', 'error'); $('#productName')?.focus(); return; }
+
+    const duplicado = customProducts.findIndex((p, i) => i !== editandoProduto && p.name.toLowerCase() === name.toLowerCase());
+    if (duplicado >= 0) {
+      if (!await uiConfirm('Já existe um produto chamado "' + name + '". Substituir?', { okLabel: 'Substituir' })) return;
     }
-    
-    if(!category){
-      playSound('error');
-      toast('Selecione uma categoria.', 'error');
-      $('#productCategory')?.focus();
-      return;
-    }
-    
-    // Verificar se já existe
-    const exists = customProducts.find(p => p.name.toLowerCase() === name.toLowerCase());
-    if(exists){
-      if (!await uiConfirm('Já existe um produto com este nome. Deseja substituir?', { okLabel: 'Substituir' })) {
-        playSound('error');
-        return;
-      }
-      const idx = customProducts.indexOf(exists);
-      customProducts.splice(idx, 1);
-    }
-    
-    customProducts.push({ name, category, unit, price, brand });
-    
-    // Também adicionar às sugestões normais
-    suggestions[name] = {
-      count: (suggestions[name]?.count || 0) + 1,
-      lastPrice: price,
-      lastCategory: category,
-      lastUnit: unit,
-      lastAt: Date.now()
-    };
-    
+    const dados = { name, category, unit, price, brand };
+    if (editandoProduto >= 0 && customProducts[editandoProduto]) customProducts[editandoProduto] = dados;
+    else customProducts.push(dados);
+    if (duplicado >= 0) customProducts.splice(duplicado, 1);
+
+    // tambem alimenta as sugestoes de digitacao da lista
+    suggestions[name] = { count: (suggestions[name]?.count || 0) + 1, lastPrice: price, lastCategory: category, lastUnit: unit, lastAt: Date.now() };
     save();
+    const editou = editandoProduto >= 0;
+    fecharFolhaProduto();
+    delete $('#productCategory').dataset.manual;
     renderProducts();
-    addProductForm.reset();
-    $('#productName')?.focus();
-    
     playSound('success');
-    toast('Produto "' + name + '" cadastrado com sucesso!', 'success');
+    toast(editou ? 'Produto atualizado' : name + ' cadastrado', 'success', 2400);
   });
 
   // ===== Inicialização =====
