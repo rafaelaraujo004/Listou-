@@ -1674,3 +1674,24 @@ a.cf-linha:active { background: var(--s3); }
 .hs-vazio b { font-size: 15.5px; color: var(--ink-2) !important; }
 .hs-vazio span { font-size: 13.5px; line-height: 1.5; color: var(--ink-3) !important; max-width: 36ch; }
 .hs-vazio strong { color: var(--ink-2) !important; }
+
+/* ============================================================
+   31. Interruptor de sons (Ajustes)
+   ============================================================ */
+.cf-switch {
+  display: flex !important; align-items: center; gap: 12px; text-align: left;
+  width: 100% !important; min-height: 0 !important; margin-top: 12px; padding: 12px 2px 0 !important;
+  border: none !important; border-top: 1px solid var(--line) !important; border-radius: 0 !important;
+  background: transparent !important; box-shadow: none !important; color: var(--ink) !important;
+}
+.cf-switch:hover { transform: none !important; }
+.cf-trilho {
+  flex: 0 0 auto; position: relative; width: 46px; height: 28px; border-radius: 999px;
+  background: var(--s3); border: 1px solid var(--line-strong); transition: background .2s, border-color .2s;
+}
+.cf-trilho span {
+  position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .22s cubic-bezier(.3,1.4,.5,1);
+}
+.cf-switch[aria-checked="true"] .cf-trilho { background: var(--brand); border-color: var(--brand); }
+.cf-switch[aria-checked="true"] .cf-trilho span { transform: translateX(18px); }

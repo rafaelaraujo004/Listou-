@@ -1,20 +1,85 @@
 // ===== Sistema de Sons =====
-const sounds = {
-  success: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGmtvvwHApBSp+zPHZjTwJGGS56+SfURAMUKzn77dmHAU7k9nywHksBSp+zPHYjTwJGGS56+SfURAMUKzn77dmHAU7k9nywHksBSp+zPHYjTwJGGS56+SfURAMUKzn77dmHAU7k9nywHksBSp+zPDYjTwJF2S56+SfURAMUKzn77dmHAU7k9nywHksBSp+zPDYjTwJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+zPDYjTwJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTwJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9nywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBSp+y/DYjTsJF2S56+SfUQ8MUKzn77dmGwU7k9jywHksBQ=='),
-  error: new Audio('data:audio/wav;base64,UklGRnQDAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVADAAD/////AgH+/wAAAQEAAAABAP7/AQD9/wIA/v8AAAIA/f8DAP3/AAADAP7/BAD8/wAABQD9/wUA+/8CAAYA+/8HAPr/AgAHAPv/CAD5/wMACAD6/wkA+f8DAAQA+f8LAPj/BAACAP3/CwD4/wUAAQD+/wsA+P8FAAAA//8LAPj/BQAAAAABAAQA9/8FAAAAAAIAAQD3/wUAAQABAAEA+P8EAAEAAQABAAL/BAACAAEAAQACAPL/AwADAAEAAgADAPL/AgAEAAEAAwADAO7/AgAFAAEABAAEAOr/AQAGAAEABQAFAOb/AAAHAAEABgAGAOL////IAAEABwAHAN7////JAAEACAAIANr+//DKAAEACQAJANb+/+/KAAEACgAKANL+/u/LAAEACwALAM7+/e7MAAEADAAMAMr+/O3NAAEADQANAMb+/OzOAAEADgAOAML++uHPAAEADwAPAL7++uDQAAEAEAAQALr+9+DRAAEAEQARALb+9d/SAAEAEgASALL+897TAAEAEwATAK7+897UAAEAFAAUAKr+8tzVAAEAFQAVAKb+8dvWAAEAFgAWAKL+79nXAAEAFwAXAJ7+7djYAAEAGAAYAJr+69fZAAEAGQAZAJb+6dbZAAEAGgAaAJL+59TaAAEAGwAbAI7+5dPbAAEAHAAcAIr+49LcAAEAHQAdAIb+4NHdAAEAHgAeAIL+3tDeAAEAHwAfAH7+29DeAAEAIAAgAHr+2M/fAAEAIQAhAHb+1c3gAAEAIgAiAHL+0szgAAEAIwAjAG7+z8vhAAEAJAAkAGr+zMniAAEAJQAlAGb+ycjiAAEAJgAmAGP+x8fjAAEAJwAnAF/+xMbkAAEAKAAoAFv+wMTkAAEAKQApAFf+vMPlAAEAKgAqAFP+uMHmAAEAKwArAFD+tMDmAAEALAAsAEz+r77nAAEALQAtAEj+qr3oAAEALgAuAET+pLvoAAEALwAvAED+n7rpAAEAMAAwADz+mbjqAAEAMQAxADj+k7fqAAEAMgAyADT+jbXrAAEAMwAzADH+h7TsAAEANAA0AC3+gLLtAAEANQA1ACn+erHtAAEANgA2ACX+c6/uAAEANwA3ACH+ba7vAAEAOAA4AB3+Z6zvAAEAOQA5ABn+Yqvw'),
-  click: new Audio('data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='),
-  notification: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAAAAA==')
-};
+// Sons sintetizados na hora (Web Audio): nitidos em qualquer aparelho, sem
+// arquivos e sem atraso. Os antigos eram WAV de 8 bits, e "click" e
+// "notification" eram arquivos vazios que nao tocavam nada.
+const Sons = (() => {
+  const CHAVE = 'listou.sons.v1';
+  let ligado = true;
+  try { ligado = localStorage.getItem(CHAVE) !== '0'; } catch (e) {}
+  let ctx = null, mestre = null;
+
+  function contexto() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      // compressor suave: varias notas juntas nunca estouram
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -18; comp.ratio.value = 4;
+      mestre = ctx.createGain(); mestre.gain.value = 0.55;
+      mestre.connect(comp); comp.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  // O navegador so libera audio depois de um toque: prepara no primeiro.
+  ['pointerdown', 'keydown'].forEach(ev =>
+    window.addEventListener(ev, () => { if (ligado) contexto(); }, { once: true, passive: true }));
+
+  // Uma nota com ataque rapido e queda exponencial (som de "gota", nao de buzina).
+  function nota(freq, inicio, dur, vol, tipo, deslize) {
+    const c = ctx, t = c.currentTime + inicio;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = tipo || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    if (deslize) o.frequency.exponentialRampToValueAtTime(deslize, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(mestre);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  // Brilho de sino: fundamental + harmonico agudo bem baixo.
+  function sino(freq, inicio, dur, vol) {
+    nota(freq, inicio, dur, vol, 'sine');
+    nota(freq * 2.01, inicio, dur * 0.6, vol * 0.18, 'sine');
+  }
+
+  const efeitos = {
+    click:   () => nota(1800, 0, 0.035, 0.05, 'triangle', 1200),
+    open:    () => { nota(520, 0, 0.09, 0.07, 'sine', 780); },
+    success: () => { sino(880, 0, 0.16, 0.16); sino(1318.5, 0.07, 0.22, 0.13); },          // item adicionado
+    check:   () => { nota(660, 0, 0.07, 0.12, 'sine', 990); sino(1318.5, 0.05, 0.2, 0.1); }, // item marcado
+    uncheck: () => nota(740, 0, 0.11, 0.09, 'sine', 440),
+    delete:  () => { nota(520, 0, 0.14, 0.1, 'triangle', 180); },
+    undo:    () => { nota(440, 0, 0.08, 0.08, 'sine', 660); sino(880, 0.06, 0.14, 0.09); },
+    error:   () => { nota(330, 0, 0.12, 0.11, 'triangle'); nota(262, 0.13, 0.18, 0.11, 'triangle'); },
+    done:    () => [784, 988, 1175, 1568].forEach((f, i) => sino(f, i * 0.07, 0.35, 0.11)),   // lista toda marcada
+    complete:() => { [523.3, 659.3, 784, 1046.5].forEach((f, i) => sino(f, i * 0.09, 0.5, 0.12));
+                     sino(1568, 0.4, 0.7, 0.07); },                                           // compra concluida
+    notification: () => { sino(988, 0, 0.18, 0.12); sino(1318.5, 0.1, 0.25, 0.1); },
+  };
+  // Vibracao curta acompanha os sons principais (Android).
+  const vibracao = { success: 12, check: 10, delete: 18, error: [20, 60, 20], done: [12, 50, 12], complete: [15, 60, 15, 60, 30] };
+
+  function tocar(nome) {
+    if (!ligado) return;
+    try {
+      if (vibracao[nome] && navigator.vibrate) navigator.vibrate(vibracao[nome]);
+      if (!efeitos[nome] || !contexto()) return;
+      efeitos[nome]();
+    } catch (e) {}
+  }
+  function definir(v) {
+    ligado = !!v;
+    try { localStorage.setItem(CHAVE, ligado ? '1' : '0'); } catch (e) {}
+    if (ligado) tocar('success');
+  }
+  return { tocar, definir, ligado: () => ligado };
+})();
 
 // Função auxiliar para tocar sons
-function playSound(soundName) {
-  try {
-    if (sounds[soundName]) {
-      sounds[soundName].currentTime = 0;
-      sounds[soundName].play().catch(() => {});
-    }
-  } catch (e) {}
-}
+function playSound(soundName) { Sons.tocar(soundName); }
 
 // ===== Números no formato brasileiro =====
 // "1.234,56" -> 1234.56 | "24,90" -> 24.9 | "1.5" -> 1.5 | "1.500" -> 1500.
@@ -88,7 +153,7 @@ function toast(message, type = 'info', duration = 3200, acao = null) {
     b.type = 'button';
     b.className = 'toast-acao';
     b.textContent = acao.rotulo;
-    b.addEventListener('click', ev => { ev.stopPropagation(); acao.aoTocar(); el.remove(); });
+    b.addEventListener('click', ev => { ev.stopPropagation(); playSound('undo'); acao.aoTocar(); el.remove(); });
     el.appendChild(b);
   }
   host.appendChild(el);
@@ -443,8 +508,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateThemeLabel() {
     document.querySelectorAll('[data-tema]').forEach(b =>
       b.setAttribute('aria-checked', String(b.getAttribute('data-tema') === currentTheme)));
+    document.getElementById('cfSons')?.setAttribute('aria-checked', String(Sons.ligado()));
   }
   document.addEventListener('click', e => {
+    const sw = e.target.closest('#cfSons');
+    if (sw) { Sons.definir(!Sons.ligado()); sw.setAttribute('aria-checked', String(Sons.ligado())); return; }
     const b = e.target.closest('[data-tema]');
     if (b && b.getAttribute('data-tema') !== currentTheme) toggleTheme();
   });
@@ -598,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // espera a animacao antes de tirar do fluxo
     setTimeout(()=> { addSheet.hidden = true; }, 220);
   }
-  $('#fabAdd')?.addEventListener('click', ()=> { playSound('click'); abrirSheet(); });
+  $('#fabAdd')?.addEventListener('click', ()=> { playSound('open'); abrirSheet(); });
   addSheet?.querySelectorAll('[data-close-sheet]').forEach(el =>
     el.addEventListener('click', fecharSheet));
   document.addEventListener('keydown', e => {
@@ -1167,15 +1235,21 @@ function upsertItem(partial){
       return;
     }
     if(e.target.getAttribute('data-act')==='toggle'){
-      const i = Number(e.target.getAttribute('data-i')); items[i].done = !!e.target.checked; save(); render();
+      const i = Number(e.target.getAttribute('data-i')); items[i].done = !!e.target.checked; somAoMarcar(items[i].done); save(); render();
     }
   });
+  // Marcar o ultimo item da lista ganha um som de conclusao.
+  function somAoMarcar(marcado) {
+    if (!marcado) return playSound('uncheck');
+    playSound(items.length > 1 && items.every(x => x.done) ? 'done' : 'check');
+  }
   listEl.addEventListener('click', (e)=>{
     const btnDel = e.target.closest('[data-del]');
     if(btnDel){
       // Um toque errado nao pode custar o item: remove na hora e oferece desfazer.
       const pos = Number(btnDel.getAttribute('data-del'));
       const [removido] = items.splice(pos, 1);
+      playSound('delete');
       save(); render();
       if (removido) {
         toast((removido.name || 'Item') + ' removido', 'info', 5000, {
@@ -1192,6 +1266,7 @@ function upsertItem(partial){
       const i = Number(alvo.getAttribute('data-i'));
       if(!Number.isFinite(i)) return;
       items[i].done = !items[i].done;
+      somAoMarcar(items[i].done);
       save(); render(); return;
     }
   });
@@ -1274,7 +1349,6 @@ function upsertItem(partial){
   const addForm = $('#addForm');
   addForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    playSound('click');
     const categoryValue = $('#category')?.value?.trim() || '';
     const productName = $('#name')?.value?.trim() || '';
     const it = {
@@ -1545,7 +1619,7 @@ function upsertItem(partial){
     // Remove apenas os itens comprados da lista, mantendo os não comprados
     items = items.filter(i => !i.done);
     save(); render(); renderReports(); renderHistorico(); 
-    playSound('success');
+    playSound('complete');
     toast('Compra finalizada! Os itens não marcados continuam na lista.', 'success', 4200);
   });
 
